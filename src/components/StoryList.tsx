@@ -121,14 +121,6 @@ export const StoryList: React.FC<StoryListProps> = ({ category = 'top', viewMode
     }
   }, [visibleStories, stories, summaries, loadingSummaries, failedSummaries, loadSummary]);
 
-  if (loading) {
-    return <div className="loading">Loading stories...</div>;
-  }
-
-  if (error) {
-    return <div className="error">{error}</div>;
-  }
-
   // Observe stories when they're added to the DOM
   const storyRef = useCallback((node: HTMLDivElement | null, storyId: number) => {
     if (node && observerRef.current) {
@@ -136,6 +128,14 @@ export const StoryList: React.FC<StoryListProps> = ({ category = 'top', viewMode
       observerRef.current.observe(node);
     }
   }, []);
+
+  if (loading) {
+    return <div className="loading">Loading stories...</div>;
+  }
+
+  if (error) {
+    return <div className="error">{error}</div>;
+  }
 
   return (
     <div className="stories-container">
