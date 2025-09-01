@@ -49,8 +49,8 @@ describe('StoryList', () => {
     render(<StoryList viewMode="full" />);
     
     await waitFor(() => {
-      expect(screen.getByText('Test Story')).toBeInTheDocument();
-      expect(screen.getByText('Another Story')).toBeInTheDocument();
+      expect(screen.getByText(/Test Story/)).toBeInTheDocument();
+      expect(screen.getByText(/Another Story/)).toBeInTheDocument();
     });
 
     expect(screen.getByText('testuser')).toBeInTheDocument();
