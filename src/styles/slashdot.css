@@ -573,6 +573,7 @@ body {
   vertical-align: middle;
 }
 
+/* Mobile Responsive Design */
 @media (max-width: 768px) {
   body {
     font-size: 12px;
@@ -589,54 +590,125 @@ body {
   .navigation {
     padding: 6px 12px;
     font-size: 11px;
-    overflow-x: auto;
-    white-space: nowrap;
+    flex-direction: column;
+    gap: 8px;
   }
   
-  .navigation a {
-    margin-right: 12px;
-    padding: 3px 6px;
+  .nav-left {
+    gap: 12px;
+    justify-content: center;
+  }
+  
+  .nav-right {
+    justify-content: center;
   }
   
   .main-content {
     padding: 8px;
   }
   
-  .story {
-    padding: 10px;
-    margin-bottom: 10px;
-  }
-  
-  .story-header {
-    gap: 8px;
-  }
-  
-  .story-icon {
-    width: 32px;
-    height: 32px;
-    font-size: 14px;
-  }
-  
-  .story-title {
-    font-size: 14px;
-  }
-  
-  .story-meta {
-    font-size: 9px;
-    padding: 3px 6px;
-  }
-  
-  .comments-section {
+  .stories-container {
     padding: 8px;
   }
   
-  .comment.level-1 { margin-left: 8px; }
-  .comment.level-2 { margin-left: 16px; }
-  .comment.level-3 { margin-left: 24px; }
-  .comment.level-4 { margin-left: 32px; }
+  /* Story Cards Mobile Optimization */
+  .story-card {
+    padding: 8px;
+    margin-bottom: 8px;
+  }
+  
+  .story-card-header {
+    gap: 6px;
+    margin-bottom: 6px;
+  }
+  
+  .avatar-placeholder {
+    width: 24px;
+    height: 24px;
+    font-size: 10px;
+  }
+  
+  .story-author {
+    font-size: 11px;
+  }
+  
+  .story-timestamp {
+    font-size: 9px;
+  }
+  
+  .story-summary {
+    font-size: 11px;
+  }
+  
+  .story-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .story-stats {
+    gap: 8px;
+  }
+  
+  .story-actions {
+    gap: 6px;
+  }
+  
+  /* View Mode Adjustments */
+  .view-full .story-title {
+    font-size: 12px;
+    padding: 4px 8px;
+  }
+  
+  .compact-view {
+    padding: 6px 8px;
+    margin-bottom: 8px;
+  }
+  
+  .compact-title {
+    font-size: 12px;
+  }
+  
+  .compact-meta {
+    font-size: 9px;
+  }
+  
+  /* Comments Mobile */
+  .comments-section {
+    padding: 6px;
+  }
+  
+  .comment {
+    padding: 4px;
+    margin-bottom: 4px;
+  }
+  
+  .comment.level-1 { margin-left: 6px; }
+  .comment.level-2 { margin-left: 12px; }
+  .comment.level-3 { margin-left: 18px; }
+  .comment.level-4 { margin-left: 24px; }
   
   .comment-text {
-    font-size: 11px;
+    font-size: 10px;
+  }
+  
+  .comment-header {
+    font-size: 8px;
+  }
+}
+
+/* Tablet Responsive Design */
+@media (max-width: 1024px) and (min-width: 769px) {
+  .main-content {
+    padding: 16px;
+  }
+  
+  .stories-container {
+    padding: 12px;
+  }
+  
+  .navigation {
+    padding: 8px 16px;
   }
 }
 
