@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { hackerNewsApi, type HackerNewsItem } from '../services/hackerNewsApi';
 import { useStoryData } from '../hooks/useStoryData';
 import { StoryCard } from './StoryCard';
@@ -27,11 +27,37 @@ export const StoryList: React.FC<StoryListProps> = ({ category = 'top', viewMode
   const [loadingSummaries, setLoadingSummaries] = useState<Set<number>>(new Set());
   const [failedSummaries, setFailedSummaries] = useState<Set<number>>(new Set());
   const [expandedStory, setExpandedStory] = useState<number | null>(null);
+  const [visibleStories, setVisibleStories] = useState<Set<number>>(new Set());
+  const observerRef = useRef<IntersectionObserver | null>(null);
 
 
   useEffect(() => {
     loadStories();
   }, [loadStories]);
+
+  // Setup intersection observer to track visible stories
+  useEffect(() => {
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const storyId = parseInt(entry.target.getAttribute('data-story-id') || '0');
+          if (entry.isIntersecting) {
+            setVisibleStories(prev => new Set([...prev, storyId]));
+          }
+        });
+      },
+      {
+        rootMargin: '100px', // Start loading summaries when stories are 100px from viewport
+        threshold: 0.1
+      }
+    );
+
+    return () => {
+      if (observerRef.current) {
+        observerRef.current.disconnect();
+      }
+    };
+  }, []);
 
   const toggleComments = (storyId: number) => {
     setExpandedStory(expandedStory === storyId ? null : storyId);
@@ -65,34 +91,35 @@ export const StoryList: React.FC<StoryListProps> = ({ category = 'top', viewMode
     }
   }, [summaries, loadingSummaries, failedSummaries]);
 
-  // Auto-load summaries for URL-only stories with priority-based loading (top-to-bottom)
-  // Only load for currently visible stories to reduce API load
+  // Load summaries only for visible stories with conservative rate limiting
   useEffect(() => {
-    const loadSummariesForNewStories = async () => {
-      const urlOnlyStories = stories.filter(story => 
-        !story.text && 
-        story.url && 
-        !summaries.has(story.id) && 
-        !loadingSummaries.has(story.id) && 
-        !failedSummaries.has(story.id)
-      );
+    const loadSummariesForVisibleStories = async () => {
+      const visibleUrlOnlyStories = stories
+        .filter(story => 
+          visibleStories.has(story.id) &&
+          !story.text && 
+          story.url && 
+          !summaries.has(story.id) && 
+          !loadingSummaries.has(story.id) && 
+          !failedSummaries.has(story.id)
+        );
       
-      // Load summaries sequentially with increased delay to reduce rate limiting
-      for (let i = 0; i < urlOnlyStories.length; i++) {
-        const story = urlOnlyStories[i];
+      // Load summaries sequentially with delay to avoid rate limiting
+      for (let i = 0; i < visibleUrlOnlyStories.length; i++) {
+        const story = visibleUrlOnlyStories[i];
         await loadSummary(story);
         
-        // Increased delay to avoid rate limiting (500ms between requests)
-        if (i < urlOnlyStories.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 500));
+        // Delay between requests to avoid rate limiting (1 second)
+        if (i < visibleUrlOnlyStories.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
         }
       }
     };
 
-    if (stories.length > 0) {
-      loadSummariesForNewStories();
+    if (visibleStories.size > 0 && stories.length > 0) {
+      loadSummariesForVisibleStories();
     }
-  }, [stories, summaries, loadingSummaries, failedSummaries, loadSummary]);
+  }, [visibleStories, stories, summaries, loadingSummaries, failedSummaries, loadSummary]);
 
   if (loading) {
     return <div className="loading">Loading stories...</div>;
@@ -102,19 +129,28 @@ export const StoryList: React.FC<StoryListProps> = ({ category = 'top', viewMode
     return <div className="error">{error}</div>;
   }
 
+  // Observe stories when they're added to the DOM
+  const storyRef = useCallback((node: HTMLDivElement | null, storyId: number) => {
+    if (node && observerRef.current) {
+      node.setAttribute('data-story-id', storyId.toString());
+      observerRef.current.observe(node);
+    }
+  }, []);
+
   return (
     <div className="stories-container">
       {stories.map((story) => (
-        <StoryCard
-          key={story.id}
-          story={story}
-          viewMode={viewMode}
-          expandedStory={expandedStory}
-          summary={summaries.get(story.id)}
-          loadingSummary={loadingSummaries.has(story.id)}
-          summaryFailed={failedSummaries.has(story.id)}
-          onToggleComments={toggleComments}
-        />
+        <div key={story.id} ref={(node) => storyRef(node, story.id)}>
+          <StoryCard
+            story={story}
+            viewMode={viewMode}
+            expandedStory={expandedStory}
+            summary={summaries.get(story.id)}
+            loadingSummary={loadingSummaries.has(story.id)}
+            summaryFailed={failedSummaries.has(story.id)}
+            onToggleComments={toggleComments}
+          />
+        </div>
       ))}
       
       {/* Load More Section */}

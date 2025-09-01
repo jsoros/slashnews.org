@@ -39,51 +39,6 @@ class HackerNewsApi {
     }
   }
 
-  private getDomainBasedSummary(url: string): string {
-    try {
-      const domain = new URL(url).hostname.toLowerCase();
-      const path = new URL(url).pathname.toLowerCase();
-      
-      // Enhanced domain-specific summaries
-      if (domain.includes('github.com')) {
-        if (path.includes('/issues/')) return 'GitHub issue or discussion';
-        if (path.includes('/pull/')) return 'GitHub pull request';
-        if (path.includes('/releases/')) return 'GitHub software release';
-        if (path.includes('/wiki/')) return 'GitHub project documentation';
-        return 'GitHub repository or project';
-      }
-      
-      if (domain.includes('arxiv.org')) return 'Academic research paper from arXiv';
-      if (domain.includes('wikipedia.org')) return 'Wikipedia encyclopedia article';
-      if (domain.includes('medium.com')) return 'Medium blog post or article';
-      if (domain.includes('stackoverflow.com')) return 'Stack Overflow programming Q&A';
-      if (domain.includes('reddit.com')) return 'Reddit discussion thread';
-      if (domain.includes('twitter.com') || domain.includes('x.com')) return 'Twitter/X social media post';
-      if (domain.includes('youtube.com') || domain.includes('youtu.be')) return 'YouTube video content';
-      if (domain.includes('news.ycombinator.com')) return 'Hacker News discussion';
-      if (domain.includes('techcrunch.com')) return 'TechCrunch technology news';
-      if (domain.includes('arstechnica.com')) return 'Ars Technica technology article';
-      if (domain.includes('wired.com')) return 'WIRED technology and culture article';
-      if (domain.includes('theverge.com')) return 'The Verge technology news';
-      if (domain.includes('bloomberg.com')) return 'Bloomberg business and financial news';
-      if (domain.includes('reuters.com')) return 'Reuters news article';
-      if (domain.includes('bbc.com') || domain.includes('bbc.co.uk')) return 'BBC news article';
-      if (domain.includes('cnn.com')) return 'CNN news article';
-      if (domain.includes('nytimes.com')) return 'New York Times news article';
-      if (domain.includes('wsj.com')) return 'Wall Street Journal article';
-      
-      // Tech company blogs/announcements
-      if (domain.includes('blog.google') || domain.includes('developers.googleblog.com')) return 'Google developer blog post';
-      if (domain.includes('engineering.fb.com') || domain.includes('tech.facebook.com')) return 'Meta/Facebook engineering blog';
-      if (domain.includes('netflixtechblog.com')) return 'Netflix technology blog';
-      if (domain.includes('eng.uber.com')) return 'Uber engineering blog';
-      if (domain.includes('blog.twitter.com')) return 'Twitter engineering blog';
-      
-      return 'External article or webpage';
-    } catch {
-      return 'External article';
-    }
-  }
 
   private maintainCache(): void {
     const now = Date.now();
@@ -109,7 +64,7 @@ class HackerNewsApi {
     try {
       const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
       const response = await axios.get(proxyUrl, { 
-        timeout: 8000,
+        timeout: 5000, // Reduced timeout to fail faster
         headers: {
           'User-Agent': 'Mozilla/5.0 (compatible; NewsAggregator/1.0)'
         }
@@ -119,10 +74,8 @@ class HackerNewsApi {
       if (html && html.length > 100) {
         return html;
       }
-    } catch (error) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn(`Failed to fetch content for ${url}:`, error);
-      }
+    } catch {
+      // Silently fail - summary failures are not critical and shouldn't spam console
     }
     
     return null;
@@ -144,23 +97,22 @@ class HackerNewsApi {
     try {
       const html = await this.fetchHtmlContent(url);
       if (!html) {
-        // Fall back to domain-based summary if no HTML retrieved
-        return this.getDomainBasedSummary(url);
+        return null;
       }
       
       // Extract meta description or Open Graph description
       const descMatch = html.match(/<meta[^>]*name="description"[^>]*content="([^"]*)"[^>]*>/i);
       const ogMatch = html.match(/<meta[^>]*property="og:description"[^>]*content="([^"]*)"[^>]*>/i);
       
-      let summary = descMatch?.[1] || ogMatch?.[1];
+      const summary = descMatch?.[1] || ogMatch?.[1];
       
-      // If no meta description found, try domain-based fallback
+      // If no meta description found, return null instead of fallback
       if (!summary) {
-        summary = this.getDomainBasedSummary(url);
+        return null;
       }
       
       // Clean up HTML entities and limit length
-      summary = summary
+      let cleanSummary = summary
         .replace(/&quot;/g, '"')
         .replace(/&#x27;/g, "'")
         .replace(/&lt;/g, '<')
@@ -168,20 +120,17 @@ class HackerNewsApi {
         .replace(/&amp;/g, '&')
         .substring(0, 300);
       
-      if (summary.length === 300) summary += '...';
+      if (cleanSummary.length === 300) cleanSummary += '...';
       
       // Cache the result with timestamp
       this.summaryCache.set(url, {
-        data: summary,
+        data: cleanSummary,
         timestamp: Date.now()
       });
-      return summary;
+      return cleanSummary;
       
-    } catch (error) {
-      // Suppress console errors for summary failures in production (they're not critical)
-      if (process.env.NODE_ENV === 'development') {
-        console.warn(`Summary unavailable for ${url}:`, error);
-      }
+    } catch {
+      // Silently fail - summary failures are not critical and shouldn't spam console
       return null;
     }
   }
