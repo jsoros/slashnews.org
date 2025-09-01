@@ -20,13 +20,56 @@ export interface HackerNewsItem {
   descendants?: number;
 }
 
+interface CacheEntry {
+  data: string;
+  timestamp: number;
+}
+
 class HackerNewsApi {
-  private summaryCache = new Map<string, string>();
+  private readonly MAX_CACHE_SIZE = 1000;
+  private readonly CACHE_EXPIRY_MS = 3600000; // 1 hour
+  private summaryCache = new Map<string, CacheEntry>();
+
+  private isValidUrl(url: string): boolean {
+    try {
+      const parsed = new URL(url);
+      return ['http:', 'https:'].includes(parsed.protocol);
+    } catch {
+      return false;
+    }
+  }
+
+  private maintainCache(): void {
+    const now = Date.now();
+    
+    // Remove expired entries
+    for (const [key, entry] of this.summaryCache.entries()) {
+      if (now - entry.timestamp > this.CACHE_EXPIRY_MS) {
+        this.summaryCache.delete(key);
+      }
+    }
+
+    // Remove oldest entries if cache is too large
+    if (this.summaryCache.size > this.MAX_CACHE_SIZE) {
+      const entries = Array.from(this.summaryCache.entries());
+      entries
+        .sort(([, a], [, b]) => a.timestamp - b.timestamp)
+        .slice(0, Math.floor(this.MAX_CACHE_SIZE * 0.2))
+        .forEach(([key]) => this.summaryCache.delete(key));
+    }
+  }
 
   async getArticleSummary(url: string): Promise<string | null> {
+    if (!this.isValidUrl(url)) {
+      return null;
+    }
+
+    this.maintainCache();
+    
     // Check cache first
-    if (this.summaryCache.has(url)) {
-      return this.summaryCache.get(url)!;
+    const cached = this.summaryCache.get(url);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_EXPIRY_MS) {
+      return cached.data;
     }
 
     try {
@@ -61,8 +104,11 @@ class HackerNewsApi {
       
       if (summary.length === 300) summary += '...';
       
-      // Cache the result
-      this.summaryCache.set(url, summary);
+      // Cache the result with timestamp
+      this.summaryCache.set(url, {
+        data: summary,
+        timestamp: Date.now()
+      });
       return summary;
       
     } catch (error) {
