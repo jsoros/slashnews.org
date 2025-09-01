@@ -142,6 +142,7 @@ body {
   cursor: pointer;
   transition: background-color 0.2s ease;
   border-radius: 0;
+  color: #333;
 }
 
 .dropdown-item:first-child {
@@ -156,6 +157,7 @@ body {
 
 .dropdown-item:hover {
   background: #f8f9fa;
+  color: #333;
 }
 
 .dropdown-item.active {
