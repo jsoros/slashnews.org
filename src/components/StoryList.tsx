@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { formatDistanceToNow } from 'date-fns';
+import DOMPurify from 'dompurify';
 import { hackerNewsApi, type HackerNewsItem } from '../services/hackerNewsApi';
 import { Comments } from './Comments';
 
@@ -234,7 +235,7 @@ export const StoryList: React.FC<StoryListProps> = ({ maxStories = 30, category 
                   {story.text && (
                     <div 
                       className="story-summary" 
-                      dangerouslySetInnerHTML={{ __html: story.text }}
+                      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(story.text) }}
                     />
                   )}
 

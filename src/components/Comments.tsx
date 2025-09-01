@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { formatDistanceToNow } from 'date-fns';
+import DOMPurify from 'dompurify';
 import { hackerNewsApi, type HackerNewsItem } from '../services/hackerNewsApi';
 
 interface CommentsProps {
@@ -121,7 +122,7 @@ export const Comments: React.FC<CommentsProps> = ({ storyId }) => {
           <div 
             className="comment-text"
             dangerouslySetInnerHTML={{ 
-              __html: formatCommentText(comment.text || '') 
+              __html: DOMPurify.sanitize(formatCommentText(comment.text || ''))
             }}
           />
         </div>
