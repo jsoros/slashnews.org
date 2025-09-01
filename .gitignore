@@ -1,6 +1,7 @@
 # Logs
 CLAUDE.md
-.claude/
+.claude/*
+agent_runs/*
 prompt.md
 logs
 *.log
