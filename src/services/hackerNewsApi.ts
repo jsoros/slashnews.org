@@ -105,39 +105,23 @@ class HackerNewsApi {
     }
   }
 
-  private async tryProxyServices(url: string): Promise<string | null> {
-    const proxies = [
-      `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-      `https://cors-anywhere.herokuapp.com/${url}`,
-      `https://thingproxy.freeboard.io/fetch/${url}`
-    ];
-
-    for (let i = 0; i < proxies.length; i++) {
-      try {
-        const response = await axios.get(proxies[i], { 
-          timeout: 5000,
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; NewsAggregator/1.0)'
-          }
-        });
-        
-        // Different proxies return data differently
-        let html: string;
-        if (proxies[i].includes('allorigins.win')) {
-          html = response.data.contents;
-        } else {
-          html = response.data;
+  private async fetchHtmlContent(url: string): Promise<string | null> {
+    try {
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+      const response = await axios.get(proxyUrl, { 
+        timeout: 8000,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; NewsAggregator/1.0)'
         }
-        
-        if (html && html.length > 100) {
-          return html;
-        }
-      } catch (error) {
-        // Continue to next proxy if this one fails
-        if (process.env.NODE_ENV === 'development') {
-          console.warn(`Proxy ${i + 1} failed for ${url}:`, error);
-        }
-        continue;
+      });
+      
+      const html = response.data.contents;
+      if (html && html.length > 100) {
+        return html;
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`Failed to fetch content for ${url}:`, error);
       }
     }
     
@@ -158,7 +142,7 @@ class HackerNewsApi {
     }
 
     try {
-      const html = await this.tryProxyServices(url);
+      const html = await this.fetchHtmlContent(url);
       if (!html) {
         // Fall back to domain-based summary if no HTML retrieved
         return this.getDomainBasedSummary(url);
