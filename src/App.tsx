@@ -28,7 +28,6 @@ function App() {
       />
       <main className="main-content">
         <StoryList 
-          maxStories={30} 
           category={currentCategory}
           viewMode={viewMode}
         />

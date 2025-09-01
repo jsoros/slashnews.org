@@ -79,7 +79,7 @@ describe('StoryList', () => {
     mockedApi.getNewStories.mockResolvedValue(mockStoryIds);
     mockedApi.getItems.mockResolvedValue(mockStories);
     
-    render(<StoryList category="new" maxStories={10} viewMode="full" />);
+    render(<StoryList category="new" viewMode="full" />);
     
     await waitFor(() => {
       expect(mockedApi.getNewStories).toHaveBeenCalled();
@@ -96,7 +96,7 @@ describe('StoryList', () => {
     mockedApi.getBestStories.mockResolvedValue(mockStoryIds);
     mockedApi.getItems.mockResolvedValue(mockStories);
     
-    render(<StoryList category="best" maxStories={5} viewMode="full" />);
+    render(<StoryList category="best" viewMode="full" />);
     
     await waitFor(() => {
       expect(mockedApi.getBestStories).toHaveBeenCalled();

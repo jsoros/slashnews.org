@@ -7,18 +7,23 @@ import { Comments } from './Comments';
 type ViewMode = 'title' | 'compact' | 'full';
 
 interface StoryListProps {
-  maxStories?: number;
   category?: string;
   viewMode: ViewMode;
 }
 
-export const StoryList: React.FC<StoryListProps> = ({ maxStories = 30, category = 'top', viewMode }) => {
+export const StoryList: React.FC<StoryListProps> = ({ category = 'top', viewMode }) => {
   const [stories, setStories] = useState<HackerNewsItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [summaries, setSummaries] = useState<Map<number, string>>(new Map());
   const [loadingSummaries, setLoadingSummaries] = useState<Set<number>>(new Set());
   const [expandedStory, setExpandedStory] = useState<number | null>(null);
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalStoryIds, setTotalStoryIds] = useState<number[]>([]);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const storiesPerPage = 30;
 
   const loadStories = useCallback(async () => {
     try {
@@ -37,8 +42,13 @@ export const StoryList: React.FC<StoryListProps> = ({ maxStories = 30, category 
           storyIds = await hackerNewsApi.getTopStories();
       }
       
-      const topStoryIds = storyIds.slice(0, maxStories);
-      const storiesData = await hackerNewsApi.getItems(topStoryIds);
+      // Store all story IDs and reset pagination
+      setTotalStoryIds(storyIds);
+      setCurrentPage(1);
+      
+      // Load first page
+      const firstPageIds = storyIds.slice(0, storiesPerPage);
+      const storiesData = await hackerNewsApi.getItems(firstPageIds);
       setStories(storiesData);
     } catch (err) {
       setError('Failed to load stories. Please try again later.');
@@ -46,7 +56,28 @@ export const StoryList: React.FC<StoryListProps> = ({ maxStories = 30, category 
     } finally {
       setLoading(false);
     }
-  }, [maxStories, category]);
+  }, [category, storiesPerPage]);
+
+  const loadMoreStories = useCallback(async () => {
+    if (loadingMore || stories.length >= totalStoryIds.length) return;
+    
+    try {
+      setLoadingMore(true);
+      const nextPage = currentPage + 1;
+      const startIndex = (nextPage - 1) * storiesPerPage;
+      const endIndex = startIndex + storiesPerPage;
+      
+      const nextPageIds = totalStoryIds.slice(startIndex, endIndex);
+      const newStoriesData = await hackerNewsApi.getItems(nextPageIds);
+      
+      setStories(prev => [...prev, ...newStoriesData]);
+      setCurrentPage(nextPage);
+    } catch (err) {
+      console.error('Error loading more stories:', err);
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, stories.length, totalStoryIds, currentPage, storiesPerPage]);
 
   useEffect(() => {
     loadStories();
@@ -301,6 +332,22 @@ export const StoryList: React.FC<StoryListProps> = ({ maxStories = 30, category 
           )}
         </div>
       ))}
+      
+      {/* Load More Section */}
+      {totalStoryIds.length > stories.length && (
+        <div className="load-more-section">
+          <div className="story-count">
+            Showing {stories.length} of {totalStoryIds.length} stories
+          </div>
+          <button 
+            className="load-more-btn"
+            onClick={loadMoreStories}
+            disabled={loadingMore}
+          >
+            {loadingMore ? 'Loading...' : 'Load More Stories'}
+          </button>
+        </div>
+      )}
     </div>
   );
 };

@@ -697,6 +697,16 @@ body {
   .comment-header {
     font-size: 8px;
   }
+  
+  /* Load More Mobile */
+  .load-more-section {
+    padding: 16px 8px;
+  }
+  
+  .load-more-btn {
+    padding: 8px 16px;
+    font-size: 11px;
+  }
 }
 
 /* Tablet Responsive Design */
@@ -719,6 +729,47 @@ body {
   color: #666;
   font-size: 10px;
   margin: 6px 0;
+}
+
+/* Load More Section */
+.load-more-section {
+  text-align: center;
+  padding: 24px 16px;
+  border-top: 1px solid #e1e8ed;
+  margin-top: 20px;
+}
+
+.story-count {
+  font-size: 11px;
+  color: #657786;
+  margin-bottom: 12px;
+}
+
+.load-more-btn {
+  background: linear-gradient(135deg, #006666 0%, #008888 100%);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 102, 102, 0.2);
+}
+
+.load-more-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #007777 0%, #009999 100%);
+  box-shadow: 0 3px 6px rgba(0, 102, 102, 0.3);
+  transform: translateY(-1px);
+}
+
+.load-more-btn:disabled {
+  background: #ccc;
+  color: #666;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 /* Footer styling */
