@@ -53,7 +53,7 @@ export const StoryList: React.FC<StoryListProps> = ({ category = 'top', viewMode
         // Mark as failed if no summary returned
         setFailedSummaries(prev => new Set([...prev, story.id]));
       }
-    } catch (error) {
+    } catch {
       // Mark as failed on error
       setFailedSummaries(prev => new Set([...prev, story.id]));
     } finally {
