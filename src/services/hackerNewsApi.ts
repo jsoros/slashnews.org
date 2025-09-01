@@ -61,21 +61,48 @@ class HackerNewsApi {
   }
 
   private async fetchHtmlContent(url: string): Promise<string | null> {
-    try {
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-      const response = await axios.get(proxyUrl, { 
-        timeout: 5000, // Reduced timeout to fail faster
-        headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; NewsAggregator/1.0)'
-        }
-      });
-      
-      const html = response.data.contents;
-      if (html && html.length > 100) {
-        return html;
+    const proxies = [
+      // Primary: allorigins.win with raw CORS support
+      {
+        url: `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+        extractContent: (response: any) => response.data
+      },
+      // Fallback 1: allorigins.win standard JSON response
+      {
+        url: `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+        extractContent: (response: any) => response.data.contents
+      },
+      // Fallback 2: anyorigin.com
+      {
+        url: `https://anyorigin.com/get?url=${encodeURIComponent(url)}&callback=`,
+        extractContent: (response: any) => response.data.contents
+      },
+      // Fallback 3: whateverorigin.org
+      {
+        url: `https://whateverorigin.org/get?url=${encodeURIComponent(url)}&callback=`,
+        extractContent: (response: any) => response.data.contents
       }
-    } catch {
-      // Silently fail - summary failures are not critical and shouldn't spam console
+    ];
+
+    for (let i = 0; i < proxies.length; i++) {
+      try {
+        const proxy = proxies[i];
+        const response = await axios.get(proxy.url, { 
+          timeout: 3000, // Shorter timeout for faster fallbacks
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; NewsAggregator/1.0)'
+          }
+        });
+        
+        const html = proxy.extractContent(response);
+        if (html && html.length > 100) {
+          return html;
+        }
+      } catch (error) {
+        // Log which proxy failed, try next one
+        console.warn(`Proxy ${i + 1} failed for ${url}:`, error.message);
+        continue;
+      }
     }
     
     return null;
@@ -129,8 +156,9 @@ class HackerNewsApi {
       });
       return cleanSummary;
       
-    } catch {
-      // Silently fail - summary failures are not critical and shouldn't spam console
+    } catch (error) {
+      // Temporarily log errors to debug summary loading issues
+      console.warn(`Article summary failed for ${url}:`, error);
       return null;
     }
   }

@@ -6,9 +6,9 @@ import '@testing-library/jest-dom';
   rootMargin = '';
   thresholds: readonly number[] = [];
   
-  constructor(_callback: IntersectionObserverCallback, _options?: IntersectionObserverInit) {}
-  observe(_target: Element) {}
+  constructor() {}
+  observe() {}
   disconnect() {}
-  unobserve(_target: Element) {}
+  unobserve() {}
   takeRecords(): IntersectionObserverEntry[] { return []; }
 };
