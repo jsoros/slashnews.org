@@ -98,18 +98,25 @@ export const StoryList: React.FC<StoryListProps> = ({ maxStories = 30, category 
     }
   }, [summaries, loadingSummaries]);
 
-  // Auto-load summaries for URL-only stories
+  // Auto-load summaries for URL-only stories with priority-based loading (top-to-bottom)
   useEffect(() => {
-    const loadAllSummaries = async () => {
+    const loadSummariesSequentially = async () => {
       const urlOnlyStories = stories.filter(story => !story.text && story.url && !summaries.has(story.id) && !loadingSummaries.has(story.id));
       
-      for (const story of urlOnlyStories) {
+      // Load summaries sequentially from top to bottom with a small delay between each
+      for (let i = 0; i < urlOnlyStories.length; i++) {
+        const story = urlOnlyStories[i];
         await loadSummary(story);
+        
+        // Add a small delay between requests to prevent overwhelming the API
+        if (i < urlOnlyStories.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 200));
+        }
       }
     };
 
     if (stories.length > 0) {
-      loadAllSummaries();
+      loadSummariesSequentially();
     }
   }, [stories, summaries, loadingSummaries, loadSummary]);
 
