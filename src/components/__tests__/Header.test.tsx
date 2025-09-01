@@ -8,7 +8,7 @@ describe('Header', () => {
     const mockOnViewModeChange = vi.fn();
     render(<Header currentCategory="top" onCategoryChange={mockOnCategoryChange} viewMode="full" onViewModeChange={mockOnViewModeChange} />);
     
-    expect(screen.getByText('Hacker News • Slashdot Style')).toBeInTheDocument();
+    expect(screen.getByText('Hacker News • Classic Style')).toBeInTheDocument();
     expect(screen.getByText('News for Nerds, Stuff that Matters (via HackerNews API)')).toBeInTheDocument();
   });
 
@@ -52,7 +52,6 @@ describe('Header', () => {
     render(<Header currentCategory="top" onCategoryChange={mockOnCategoryChange} viewMode="full" onViewModeChange={mockOnViewModeChange} />);
     
     expect(screen.getByText('Original HN')).toHaveAttribute('href', 'https://news.ycombinator.com/');
-    expect(screen.getByText('Slashdot')).toHaveAttribute('href', 'https://slashdot.org/');
     expect(screen.getByText('HN API')).toHaveAttribute('href', 'https://github.com/HackerNews/API');
   });
 });

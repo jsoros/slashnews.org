@@ -20,7 +20,7 @@ export const Header: React.FC<HeaderProps> = ({ currentCategory, onCategoryChang
   return (
     <>
       <div className="header">
-        <h1>Hacker News • Slashdot Style</h1>
+        <h1>Hacker News • Classic Style</h1>
         <div className="tagline">News for Nerds, Stuff that Matters (via HackerNews API)</div>
       </div>
       <nav className="navigation">
@@ -41,9 +41,6 @@ export const Header: React.FC<HeaderProps> = ({ currentCategory, onCategoryChang
           <span className="nav-separator">|</span>
           <a href="https://news.ycombinator.com/" target="_blank" rel="noopener noreferrer">
             Original HN
-          </a>
-          <a href="https://slashdot.org/" target="_blank" rel="noopener noreferrer">
-            Slashdot
           </a>
           <a href="https://github.com/HackerNews/API" target="_blank" rel="noopener noreferrer">
             HN API

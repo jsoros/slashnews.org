@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Header } from './components/Header';
 import { StoryList } from './components/StoryList';
-import './styles/slashdot.css';
+import { Footer } from './components/Footer';
+import './styles/classic.css';
 
 type ViewMode = 'title' | 'compact' | 'full';
 
@@ -32,6 +33,7 @@ function App() {
           viewMode={viewMode}
         />
       </main>
+      <Footer />
     </div>
   );
 }
