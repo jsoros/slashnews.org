@@ -17,6 +17,7 @@ export const StoryList: React.FC<StoryListProps> = ({ category = 'top', viewMode
   const [error, setError] = useState<string | null>(null);
   const [summaries, setSummaries] = useState<Map<number, string>>(new Map());
   const [loadingSummaries, setLoadingSummaries] = useState<Set<number>>(new Set());
+  const [failedSummaries, setFailedSummaries] = useState<Set<number>>(new Set());
   const [expandedStory, setExpandedStory] = useState<number | null>(null);
   
   // Pagination state
@@ -107,7 +108,7 @@ export const StoryList: React.FC<StoryListProps> = ({ category = 'top', viewMode
 
 
   const loadSummary = useCallback(async (story: HackerNewsItem) => {
-    if (!story.url || summaries.has(story.id) || loadingSummaries.has(story.id)) {
+    if (!story.url || summaries.has(story.id) || loadingSummaries.has(story.id) || failedSummaries.has(story.id)) {
       return;
     }
 
@@ -117,9 +118,13 @@ export const StoryList: React.FC<StoryListProps> = ({ category = 'top', viewMode
       const summary = await hackerNewsApi.getArticleSummary(story.url);
       if (summary) {
         setSummaries(prev => new Map([...prev, [story.id, summary]]));
+      } else {
+        // Mark as failed if no summary returned
+        setFailedSummaries(prev => new Set([...prev, story.id]));
       }
     } catch (error) {
-      console.error('Failed to load summary:', error);
+      // Mark as failed on error
+      setFailedSummaries(prev => new Set([...prev, story.id]));
     } finally {
       setLoadingSummaries(prev => {
         const newSet = new Set(prev);
@@ -127,29 +132,40 @@ export const StoryList: React.FC<StoryListProps> = ({ category = 'top', viewMode
         return newSet;
       });
     }
-  }, [summaries, loadingSummaries]);
+  }, [summaries, loadingSummaries, failedSummaries]);
 
   // Auto-load summaries for URL-only stories with priority-based loading (top-to-bottom)
+  // Only load for currently visible stories to reduce API load
   useEffect(() => {
-    const loadSummariesSequentially = async () => {
-      const urlOnlyStories = stories.filter(story => !story.text && story.url && !summaries.has(story.id) && !loadingSummaries.has(story.id));
+    const loadSummariesForNewStories = async () => {
+      // Get only the newly loaded stories that need summaries
+      const previousStoriesCount = (currentPage - 1) * storiesPerPage;
+      const newStories = stories.slice(previousStoriesCount);
       
-      // Load summaries sequentially from top to bottom with a small delay between each
+      const urlOnlyStories = newStories.filter(story => 
+        !story.text && 
+        story.url && 
+        !summaries.has(story.id) && 
+        !loadingSummaries.has(story.id) && 
+        !failedSummaries.has(story.id)
+      );
+      
+      // Load summaries sequentially with increased delay to reduce rate limiting
       for (let i = 0; i < urlOnlyStories.length; i++) {
         const story = urlOnlyStories[i];
         await loadSummary(story);
         
-        // Add a small delay between requests to prevent overwhelming the API
+        // Increased delay to avoid rate limiting (500ms between requests)
         if (i < urlOnlyStories.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise(resolve => setTimeout(resolve, 500));
         }
       }
     };
 
     if (stories.length > 0) {
-      loadSummariesSequentially();
+      loadSummariesForNewStories();
     }
-  }, [stories, summaries, loadingSummaries, loadSummary]);
+  }, [stories, summaries, loadingSummaries, failedSummaries, loadSummary, currentPage, storiesPerPage]);
 
   if (loading) {
     return <div className="loading">Loading stories...</div>;
@@ -287,6 +303,10 @@ export const StoryList: React.FC<StoryListProps> = ({ category = 'top', viewMode
                       ) : loadingSummaries.has(story.id) ? (
                         <div className="loading-summary">
                           <em>Loading summary...</em>
+                        </div>
+                      ) : failedSummaries.has(story.id) ? (
+                        <div className="failed-summary">
+                          <em>Summary unavailable</em>
                         </div>
                       ) : null}
                     </div>

@@ -39,6 +39,52 @@ class HackerNewsApi {
     }
   }
 
+  private getDomainBasedSummary(url: string): string {
+    try {
+      const domain = new URL(url).hostname.toLowerCase();
+      const path = new URL(url).pathname.toLowerCase();
+      
+      // Enhanced domain-specific summaries
+      if (domain.includes('github.com')) {
+        if (path.includes('/issues/')) return 'GitHub issue or discussion';
+        if (path.includes('/pull/')) return 'GitHub pull request';
+        if (path.includes('/releases/')) return 'GitHub software release';
+        if (path.includes('/wiki/')) return 'GitHub project documentation';
+        return 'GitHub repository or project';
+      }
+      
+      if (domain.includes('arxiv.org')) return 'Academic research paper from arXiv';
+      if (domain.includes('wikipedia.org')) return 'Wikipedia encyclopedia article';
+      if (domain.includes('medium.com')) return 'Medium blog post or article';
+      if (domain.includes('stackoverflow.com')) return 'Stack Overflow programming Q&A';
+      if (domain.includes('reddit.com')) return 'Reddit discussion thread';
+      if (domain.includes('twitter.com') || domain.includes('x.com')) return 'Twitter/X social media post';
+      if (domain.includes('youtube.com') || domain.includes('youtu.be')) return 'YouTube video content';
+      if (domain.includes('news.ycombinator.com')) return 'Hacker News discussion';
+      if (domain.includes('techcrunch.com')) return 'TechCrunch technology news';
+      if (domain.includes('arstechnica.com')) return 'Ars Technica technology article';
+      if (domain.includes('wired.com')) return 'WIRED technology and culture article';
+      if (domain.includes('theverge.com')) return 'The Verge technology news';
+      if (domain.includes('bloomberg.com')) return 'Bloomberg business and financial news';
+      if (domain.includes('reuters.com')) return 'Reuters news article';
+      if (domain.includes('bbc.com') || domain.includes('bbc.co.uk')) return 'BBC news article';
+      if (domain.includes('cnn.com')) return 'CNN news article';
+      if (domain.includes('nytimes.com')) return 'New York Times news article';
+      if (domain.includes('wsj.com')) return 'Wall Street Journal article';
+      
+      // Tech company blogs/announcements
+      if (domain.includes('blog.google') || domain.includes('developers.googleblog.com')) return 'Google developer blog post';
+      if (domain.includes('engineering.fb.com') || domain.includes('tech.facebook.com')) return 'Meta/Facebook engineering blog';
+      if (domain.includes('netflixtechblog.com')) return 'Netflix technology blog';
+      if (domain.includes('eng.uber.com')) return 'Uber engineering blog';
+      if (domain.includes('blog.twitter.com')) return 'Twitter engineering blog';
+      
+      return 'External article or webpage';
+    } catch {
+      return 'External article';
+    }
+  }
+
   private maintainCache(): void {
     const now = Date.now();
     
@@ -59,6 +105,45 @@ class HackerNewsApi {
     }
   }
 
+  private async tryProxyServices(url: string): Promise<string | null> {
+    const proxies = [
+      `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+      `https://cors-anywhere.herokuapp.com/${url}`,
+      `https://thingproxy.freeboard.io/fetch/${url}`
+    ];
+
+    for (let i = 0; i < proxies.length; i++) {
+      try {
+        const response = await axios.get(proxies[i], { 
+          timeout: 5000,
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (compatible; NewsAggregator/1.0)'
+          }
+        });
+        
+        // Different proxies return data differently
+        let html: string;
+        if (proxies[i].includes('allorigins.win')) {
+          html = response.data.contents;
+        } else {
+          html = response.data;
+        }
+        
+        if (html && html.length > 100) {
+          return html;
+        }
+      } catch (error) {
+        // Continue to next proxy if this one fails
+        if (process.env.NODE_ENV === 'development') {
+          console.warn(`Proxy ${i + 1} failed for ${url}:`, error);
+        }
+        continue;
+      }
+    }
+    
+    return null;
+  }
+
   async getArticleSummary(url: string): Promise<string | null> {
     if (!this.isValidUrl(url)) {
       return null;
@@ -73,9 +158,11 @@ class HackerNewsApi {
     }
 
     try {
-      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-      const response = await axios.get(proxyUrl);
-      const html = response.data.contents;
+      const html = await this.tryProxyServices(url);
+      if (!html) {
+        // Fall back to domain-based summary if no HTML retrieved
+        return this.getDomainBasedSummary(url);
+      }
       
       // Extract meta description or Open Graph description
       const descMatch = html.match(/<meta[^>]*name="description"[^>]*content="([^"]*)"[^>]*>/i);
@@ -85,12 +172,7 @@ class HackerNewsApi {
       
       // If no meta description found, try domain-based fallback
       if (!summary) {
-        const domain = new URL(url).hostname.toLowerCase();
-        if (domain.includes('github')) summary = 'GitHub repository or project';
-        else if (domain.includes('arxiv')) summary = 'Academic paper or research article';
-        else if (domain.includes('wikipedia')) summary = 'Wikipedia article';
-        else if (domain.includes('medium')) summary = 'Medium article or blog post';
-        else summary = 'External article';
+        summary = this.getDomainBasedSummary(url);
       }
       
       // Clean up HTML entities and limit length
@@ -112,7 +194,10 @@ class HackerNewsApi {
       return summary;
       
     } catch (error) {
-      console.error(`Failed to fetch summary for ${url}:`, error);
+      // Suppress console errors for summary failures in production (they're not critical)
+      if (process.env.NODE_ENV === 'development') {
+        console.warn(`Summary unavailable for ${url}:`, error);
+      }
       return null;
     }
   }
