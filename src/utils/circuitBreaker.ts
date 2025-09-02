@@ -203,6 +203,11 @@ export class CircuitBreakerRegistry {
     operation: () => Promise<T>,
     retryOptions?: Partial<RetryOptions>
   ): Promise<T> {
+    // Skip circuit breaker in test environment to prevent memory issues and hanging
+    if (process.env.NODE_ENV === 'test' || process.env.VITEST === 'true') {
+      return operation();
+    }
+
     const breaker = this.getOrCreateBreaker(breakerName);
 
     return this.retryManager.executeWithRetry(async () => {

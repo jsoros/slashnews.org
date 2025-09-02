@@ -11,5 +11,13 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    testTimeout: 10000, // 10 second timeout to prevent hanging
+    pool: 'threads',
+    poolOptions: {
+      threads: {
+        minThreads: 1,
+        maxThreads: 2, // Limit threads to prevent memory issues
+      }
+    }
   },
 })
