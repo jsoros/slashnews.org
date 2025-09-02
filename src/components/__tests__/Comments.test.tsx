@@ -19,6 +19,7 @@ describe('Comments Component', () => {
 
   afterEach(() => {
     vi.clearAllTimers();
+    vi.clearAllMocks();
   });
 
   const mockStory = {
@@ -63,20 +64,38 @@ describe('Comments Component', () => {
 
   describe('Loading States', () => {
     it('renders loading state initially', () => {
-      mockGetItem.mockImplementation(() => new Promise(() => {})); // Never resolves
+      // Use a promise that will be cleaned up instead of never-resolving
+      let resolvePromise: (value: any) => void = () => {};
+      const pendingPromise: Promise<any> = new Promise((resolve) => {
+        resolvePromise = resolve;
+      });
+      mockGetItem.mockReturnValue(pendingPromise);
       
-      render(<Comments storyId={123} />);
+      const { unmount } = render(<Comments storyId={123} />);
       
       expect(screen.getByText('Loading comments...')).toBeInTheDocument();
+      
+      // Cleanup: resolve promise and unmount to prevent memory leaks
+      resolvePromise(null);
+      unmount();
     });
 
     it('renders loading state in comments section container', () => {
-      mockGetItem.mockImplementation(() => new Promise(() => {})); // Never resolves
+      // Use a promise that will be cleaned up instead of never-resolving
+      let resolvePromise: (value: any) => void = () => {};
+      const pendingPromise: Promise<any> = new Promise((resolve) => {
+        resolvePromise = resolve;
+      });
+      mockGetItem.mockReturnValue(pendingPromise);
       
-      render(<Comments storyId={123} />);
+      const { unmount } = render(<Comments storyId={123} />);
       
       const commentsSection = screen.getByText('Loading comments...').parentElement;
       expect(commentsSection).toHaveClass('comments-section');
+      
+      // Cleanup: resolve promise and unmount to prevent memory leaks
+      resolvePromise(null);
+      unmount();
     });
   });
 

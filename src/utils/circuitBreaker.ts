@@ -223,10 +223,10 @@ export class CircuitBreakerRegistry {
     return stats;
   }
 
+  // Cleanup method for test environments
   resetAll(): void {
-    for (const breaker of this.breakers.values()) {
-      breaker.reset();
-    }
+    this.breakers.clear();
+    this.retryManager = new RetryManager();
   }
 }
 

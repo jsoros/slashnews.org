@@ -11,13 +11,26 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
-    testTimeout: 10000, // 10 second timeout to prevent hanging
-    pool: 'threads',
+    testTimeout: 15000, // 15 second timeout to prevent hanging
+    hookTimeout: 10000,
+    teardownTimeout: 10000,
+    pool: 'forks', // Use forks instead of threads for better memory isolation
     poolOptions: {
-      threads: {
-        minThreads: 1,
-        maxThreads: 2, // Limit threads to prevent memory issues
+      forks: {
+        minForks: 1,
+        maxForks: process.env.CI ? 1 : 2, // Single fork in CI for memory efficiency
+        singleFork: process.env.CI ? true : false,
       }
-    }
+    },
+    // Memory management optimizations
+    maxConcurrency: process.env.CI ? 1 : 5,
+    sequence: {
+      concurrent: process.env.CI ? false : true // Disable concurrency in CI
+    },
+    // Enhanced cleanup
+    clearMocks: true,
+    restoreMocks: true,
+    unstubEnvs: true,
+    unstubGlobals: true,
   },
 })

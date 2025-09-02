@@ -267,6 +267,11 @@ class HackerNewsApi {
     
     return comments;
   }
+
+  // Cleanup method for test environments
+  clearCache(): void {
+    this.summaryCache.clear();
+  }
 }
 
 export const hackerNewsApi = new HackerNewsApi();
