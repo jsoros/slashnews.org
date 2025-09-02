@@ -18,7 +18,8 @@ describe('HackerNewsApi', () => {
       const result = await hackerNewsApi.getTopStories();
 
       expect(mockedAxios.get).toHaveBeenCalledWith(
-        'https://hacker-news.firebaseio.com/v0/topstories.json'
+        'https://hacker-news.firebaseio.com/v0/topstories.json',
+        { timeout: 10000 }
       );
       expect(result).toEqual(mockStoryIds);
     });
@@ -42,7 +43,8 @@ describe('HackerNewsApi', () => {
       const result = await hackerNewsApi.getItem(123);
 
       expect(mockedAxios.get).toHaveBeenCalledWith(
-        'https://hacker-news.firebaseio.com/v0/item/123.json'
+        'https://hacker-news.firebaseio.com/v0/item/123.json',
+        { timeout: 8000 }
       );
       expect(result).toEqual(mockStory);
     });
