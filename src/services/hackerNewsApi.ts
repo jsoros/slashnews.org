@@ -1,4 +1,6 @@
 import axios from 'axios';
+import { measureAsync } from '../utils/performance';
+import { circuitBreakerRegistry } from '../utils/circuitBreaker';
 
 const BASE_URL = 'https://hacker-news.firebaseio.com/v0';
 
@@ -65,42 +67,50 @@ class HackerNewsApi {
       // Primary: allorigins.win with raw CORS support
       {
         url: `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-        extractContent: (response: any) => response.data
+        extractContent: (response: { data: string }) => response.data
       },
       // Fallback 1: allorigins.win standard JSON response
       {
         url: `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-        extractContent: (response: any) => response.data.contents
+        extractContent: (response: { data: { contents: string } }) => response.data.contents
       },
       // Fallback 2: anyorigin.com
       {
         url: `https://anyorigin.com/get?url=${encodeURIComponent(url)}&callback=`,
-        extractContent: (response: any) => response.data.contents
+        extractContent: (response: { data: { contents: string } }) => response.data.contents
       },
       // Fallback 3: whateverorigin.org
       {
         url: `https://whateverorigin.org/get?url=${encodeURIComponent(url)}&callback=`,
-        extractContent: (response: any) => response.data.contents
+        extractContent: (response: { data: { contents: string } }) => response.data.contents
       }
     ];
 
     for (let i = 0; i < proxies.length; i++) {
       try {
         const proxy = proxies[i];
-        const response = await axios.get(proxy.url, { 
-          timeout: 3000, // Shorter timeout for faster fallbacks
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (compatible; NewsAggregator/1.0)'
-          }
-        });
         
-        const html = proxy.extractContent(response);
+        const html = await circuitBreakerRegistry.executeWithCircuitBreaker(
+          `proxy-service-${i}`,
+          async () => {
+            const response = await axios.get(proxy.url, { 
+              timeout: 8000, // Longer timeout with circuit breaker protection
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; NewsAggregator/1.0)'
+              }
+            });
+            return proxy.extractContent(response);
+          },
+          { maxRetries: 1, baseDelayMs: 1000 }
+        );
+        
         if (html && html.length > 100) {
           return html;
         }
       } catch (error) {
         // Log which proxy failed, try next one
-        console.warn(`Proxy ${i + 1} failed for ${url}:`, error.message);
+        const message = error instanceof Error ? error.message : String(error);
+        console.warn(`Proxy ${i + 1} failed for ${url}:`, message);
         continue;
       }
     }
@@ -122,7 +132,9 @@ class HackerNewsApi {
     }
 
     try {
-      const html = await this.fetchHtmlContent(url);
+      const html = await measureAsync('HN-API-fetchHtmlContent', () => 
+        this.fetchHtmlContent(url)
+      );
       if (!html) {
         return null;
       }
@@ -163,28 +175,60 @@ class HackerNewsApi {
     }
   }
   async getTopStories(): Promise<number[]> {
-    const response = await axios.get(`${BASE_URL}/topstories.json`);
-    return response.data;
+    return measureAsync('HN-API-getTopStories', async () => {
+      return circuitBreakerRegistry.executeWithCircuitBreaker(
+        'hacker-news-stories',
+        async () => {
+          const response = await axios.get(`${BASE_URL}/topstories.json`, { timeout: 10000 });
+          return response.data;
+        },
+        { maxRetries: 2, baseDelayMs: 1000 }
+      );
+    });
   }
 
   async getNewStories(): Promise<number[]> {
-    const response = await axios.get(`${BASE_URL}/newstories.json`);
-    return response.data;
+    return measureAsync('HN-API-getNewStories', async () => {
+      return circuitBreakerRegistry.executeWithCircuitBreaker(
+        'hacker-news-stories',
+        async () => {
+          const response = await axios.get(`${BASE_URL}/newstories.json`, { timeout: 10000 });
+          return response.data;
+        },
+        { maxRetries: 2, baseDelayMs: 1000 }
+      );
+    });
   }
 
   async getBestStories(): Promise<number[]> {
-    const response = await axios.get(`${BASE_URL}/beststories.json`);
-    return response.data;
+    return measureAsync('HN-API-getBestStories', async () => {
+      return circuitBreakerRegistry.executeWithCircuitBreaker(
+        'hacker-news-stories',
+        async () => {
+          const response = await axios.get(`${BASE_URL}/beststories.json`, { timeout: 10000 });
+          return response.data;
+        },
+        { maxRetries: 2, baseDelayMs: 1000 }
+      );
+    });
   }
 
   async getItem(id: number): Promise<HackerNewsItem | null> {
-    try {
-      const response = await axios.get(`${BASE_URL}/item/${id}.json`);
-      return response.data;
-    } catch (error) {
-      console.error(`Failed to fetch item ${id}:`, error);
-      return null;
-    }
+    return measureAsync(`HN-API-getItem-${id}`, async () => {
+      try {
+        return await circuitBreakerRegistry.executeWithCircuitBreaker(
+          'hacker-news-items',
+          async () => {
+            const response = await axios.get(`${BASE_URL}/item/${id}.json`, { timeout: 8000 });
+            return response.data;
+          },
+          { maxRetries: 2, baseDelayMs: 500 }
+        );
+      } catch (error) {
+        console.error(`Failed to fetch item ${id}:`, error);
+        return null;
+      }
+    });
   }
 
   async getItems(ids: number[]): Promise<HackerNewsItem[]> {

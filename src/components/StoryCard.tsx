@@ -3,6 +3,7 @@ import { formatDistanceToNow } from 'date-fns';
 import DOMPurify from 'dompurify';
 import { type HackerNewsItem } from '../services/hackerNewsApi';
 import { Comments } from './Comments';
+import { CommentsErrorBoundary } from './ErrorBoundary';
 
 type ViewMode = 'title' | 'compact' | 'full';
 
@@ -19,22 +20,27 @@ interface StoryCardProps {
 const getStoryIcon = (story: HackerNewsItem): string => {
   if (!story.url) return '💬';
   
-  const domain = new URL(story.url).hostname.toLowerCase();
-  if (domain.includes('github')) return '👨‍💻';
-  if (domain.includes('youtube') || domain.includes('youtu.be')) return '📺';
-  if (domain.includes('twitter') || domain.includes('x.com')) return '🐦';
-  if (domain.includes('medium')) return '📝';
-  if (domain.includes('arxiv')) return '🔬';
-  if (domain.includes('wikipedia')) return '📚';
-  
-  return '🌐';
+  try {
+    const domain = new URL(story.url).hostname.toLowerCase();
+    if (domain.includes('github')) return '👨‍💻';
+    if (domain.includes('youtube') || domain.includes('youtu.be')) return '📺';
+    if (domain.includes('twitter') || domain.includes('x.com')) return '🐦';
+    if (domain.includes('medium')) return '📝';
+    if (domain.includes('arxiv')) return '🔬';
+    if (domain.includes('wikipedia')) return '📚';
+    
+    return '🌐';
+  } catch {
+    // Return generic icon for malformed URLs
+    return '🌐';
+  }
 };
 
 const formatTimeAgo = (timestamp: number): string => {
   return formatDistanceToNow(new Date(timestamp * 1000), { addSuffix: true });
 };
 
-export const StoryCard: React.FC<StoryCardProps> = ({
+export const StoryCard = React.memo<StoryCardProps>(({
   story,
   viewMode,
   expandedStory,
@@ -115,7 +121,9 @@ export const StoryCard: React.FC<StoryCardProps> = ({
           {/* Comments for compact view */}
           {expandedStory === story.id && (
             <div className="compact-comments-section">
-              <Comments storyId={story.id} />
+              <CommentsErrorBoundary>
+                <Comments storyId={story.id} />
+              </CommentsErrorBoundary>
             </div>
           )}
         </div>
@@ -159,7 +167,13 @@ export const StoryCard: React.FC<StoryCardProps> = ({
                         rel="noopener noreferrer" 
                         className="story-source"
                       >
-                        {new URL(story.url).hostname}
+                        {(() => {
+                          try {
+                            return new URL(story.url).hostname;
+                          } catch {
+                            return story.url;
+                          }
+                        })()}
                       </a>
                     </>
                   )}
@@ -233,7 +247,9 @@ export const StoryCard: React.FC<StoryCardProps> = ({
             {/* Comments for Full View - Inside Card */}
             {expandedStory === story.id && (
               <div className="full-comments-section">
-                <Comments storyId={story.id} />
+                <CommentsErrorBoundary>
+                  <Comments storyId={story.id} />
+                </CommentsErrorBoundary>
               </div>
             )}
           </div>
@@ -241,4 +257,11 @@ export const StoryCard: React.FC<StoryCardProps> = ({
       )}
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  return prevProps.story.id === nextProps.story.id &&
+         prevProps.viewMode === nextProps.viewMode &&
+         prevProps.expandedStory === nextProps.expandedStory &&
+         prevProps.summary === nextProps.summary &&
+         prevProps.loadingSummary === nextProps.loadingSummary &&
+         prevProps.summaryFailed === nextProps.summaryFailed;
+});

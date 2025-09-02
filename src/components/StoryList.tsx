@@ -1,7 +1,9 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { hackerNewsApi, type HackerNewsItem } from '../services/hackerNewsApi';
 import { useStoryData } from '../hooks/useStoryData';
+import { useStoryListState } from '../hooks/useStoryListState';
 import { StoryCard } from './StoryCard';
+import { StoryErrorBoundary } from './ErrorBoundary';
 
 type ViewMode = 'title' | 'compact' | 'full';
 
@@ -10,7 +12,7 @@ interface StoryListProps {
   viewMode: ViewMode;
 }
 
-export const StoryList: React.FC<StoryListProps> = ({ category = 'top', viewMode }) => {
+export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMode }) => {
   const { 
     stories, 
     loading, 
@@ -23,26 +25,41 @@ export const StoryList: React.FC<StoryListProps> = ({ category = 'top', viewMode
     totalCount 
   } = useStoryData(category);
 
-  const [summaries, setSummaries] = useState<Map<number, string>>(new Map());
-  const [loadingSummaries, setLoadingSummaries] = useState<Set<number>>(new Set());
-  const [failedSummaries, setFailedSummaries] = useState<Set<number>>(new Set());
-  const [expandedStory, setExpandedStory] = useState<number | null>(null);
-  const [visibleStories, setVisibleStories] = useState<Set<number>>(new Set());
+  // Use the new reducer-based state management
+  const { state, actions, computed } = useStoryListState();
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const observedElements = useRef<Map<number, Element>>(new Map());
 
 
   useEffect(() => {
     loadStories();
   }, [loadStories]);
 
+  // Clean up observed elements when category changes
+  useEffect(() => {
+    // Clear all observed elements and visible stories when category changes
+    const observer = observerRef.current;
+    const elements = observedElements.current;
+    
+    if (observer) {
+      elements.forEach((element) => {
+        observer.unobserve(element);
+      });
+    }
+    elements.clear();
+    actions.clearVisibleStories();
+  }, [category]);
+
   // Setup intersection observer to track visible stories
   useEffect(() => {
+    const elements = observedElements.current;
+    
     observerRef.current = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           const storyId = parseInt(entry.target.getAttribute('data-story-id') || '0');
           if (entry.isIntersecting) {
-            setVisibleStories(prev => new Set([...prev, storyId]));
+            actions.addVisibleStory(storyId);
           }
         });
       },
@@ -52,80 +69,86 @@ export const StoryList: React.FC<StoryListProps> = ({ category = 'top', viewMode
       }
     );
 
+    // Cleanup function to properly disconnect observer and clear references
     return () => {
-      if (observerRef.current) {
-        observerRef.current.disconnect();
+      const observer = observerRef.current;
+      
+      if (observer) {
+        observer.disconnect();
+        observerRef.current = null;
       }
+      elements.clear();
     };
   }, []);
 
-  const toggleComments = (storyId: number) => {
-    setExpandedStory(expandedStory === storyId ? null : storyId);
-  };
+  const toggleComments = useCallback((storyId: number) => {
+    actions.toggleStoryExpansion(storyId);
+  }, [actions]);
 
 
   const loadSummary = useCallback(async (story: HackerNewsItem) => {
-    if (!story.url || summaries.has(story.id) || loadingSummaries.has(story.id) || failedSummaries.has(story.id)) {
+    if (!computed.shouldLoadSummary(story.id, !!story.url)) {
       return;
     }
 
-    setLoadingSummaries(prev => new Set([...prev, story.id]));
+    actions.startSummaryLoading(story.id);
 
     try {
-      const summary = await hackerNewsApi.getArticleSummary(story.url);
+      const summary = await hackerNewsApi.getArticleSummary(story.url!);
       if (summary) {
-        setSummaries(prev => new Map([...prev, [story.id, summary]]));
+        actions.setSummarySuccess(story.id, summary);
       } else {
-        // Mark as failed if no summary returned
-        setFailedSummaries(prev => new Set([...prev, story.id]));
+        actions.setSummaryFailed(story.id);
       }
     } catch {
-      // Mark as failed on error
-      setFailedSummaries(prev => new Set([...prev, story.id]));
-    } finally {
-      setLoadingSummaries(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(story.id);
-        return newSet;
-      });
+      actions.setSummaryFailed(story.id);
     }
-  }, [summaries, loadingSummaries, failedSummaries]);
+  }, [computed, actions]);
 
   // Load summaries only for visible stories with conservative rate limiting
   useEffect(() => {
     const loadSummariesForVisibleStories = async () => {
-      const visibleUrlOnlyStories = stories
-        .filter(story => 
-          visibleStories.has(story.id) &&
-          !story.text && 
-          story.url && 
-          !summaries.has(story.id) && 
-          !loadingSummaries.has(story.id) && 
-          !failedSummaries.has(story.id)
-        );
+      const loadableStories = computed.getLoadableSummaries(
+        stories.map(s => s.id), 
+        (id) => {
+          const story = stories.find(s => s.id === id);
+          return !!(story?.url && !story.text);
+        }
+      );
       
       // Load summaries sequentially with delay to avoid rate limiting
-      for (let i = 0; i < visibleUrlOnlyStories.length; i++) {
-        const story = visibleUrlOnlyStories[i];
-        await loadSummary(story);
-        
-        // Delay between requests to avoid rate limiting (1 second)
-        if (i < visibleUrlOnlyStories.length - 1) {
-          await new Promise(resolve => setTimeout(resolve, 1000));
+      for (let i = 0; i < loadableStories.length; i++) {
+        const storyId = loadableStories[i];
+        const story = stories.find(s => s.id === storyId);
+        if (story) {
+          await loadSummary(story);
+          
+          // Delay between requests to avoid rate limiting (1 second)
+          if (i < loadableStories.length - 1) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+          }
         }
       }
     };
 
-    if (visibleStories.size > 0 && stories.length > 0) {
+    if (state.visibleStories.size > 0 && stories.length > 0) {
       loadSummariesForVisibleStories();
     }
-  }, [visibleStories, stories, summaries, loadingSummaries, failedSummaries, loadSummary]);
+  }, [state.visibleStories, stories, computed, loadSummary]);
 
-  // Observe stories when they're added to the DOM
+  // Observe stories when they're added to the DOM with proper cleanup
   const storyRef = useCallback((node: HTMLDivElement | null, storyId: number) => {
+    // Clean up previous observation if element is being replaced
+    const previousElement = observedElements.current.get(storyId);
+    if (previousElement && observerRef.current) {
+      observerRef.current.unobserve(previousElement);
+      observedElements.current.delete(storyId);
+    }
+
     if (node && observerRef.current) {
       node.setAttribute('data-story-id', storyId.toString());
       observerRef.current.observe(node);
+      observedElements.current.set(storyId, node);
     }
   }, []);
 
@@ -141,15 +164,17 @@ export const StoryList: React.FC<StoryListProps> = ({ category = 'top', viewMode
     <div className="stories-container">
       {stories.map((story) => (
         <div key={story.id} ref={(node) => storyRef(node, story.id)}>
-          <StoryCard
-            story={story}
-            viewMode={viewMode}
-            expandedStory={expandedStory}
-            summary={summaries.get(story.id)}
-            loadingSummary={loadingSummaries.has(story.id)}
-            summaryFailed={failedSummaries.has(story.id)}
-            onToggleComments={toggleComments}
-          />
+          <StoryErrorBoundary>
+            <StoryCard
+              story={story}
+              viewMode={viewMode}
+              expandedStory={state.expandedStory}
+              summary={computed.getSummary(story.id)}
+              loadingSummary={computed.isLoadingSummary(story.id)}
+              summaryFailed={computed.isSummaryFailed(story.id)}
+              onToggleComments={toggleComments}
+            />
+          </StoryErrorBoundary>
         </div>
       ))}
       
@@ -170,4 +195,7 @@ export const StoryList: React.FC<StoryListProps> = ({ category = 'top', viewMode
       )}
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  return prevProps.category === nextProps.category &&
+         prevProps.viewMode === nextProps.viewMode;
+});

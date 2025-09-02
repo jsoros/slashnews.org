@@ -9,7 +9,7 @@ interface HeaderProps {
   onViewModeChange: (mode: ViewMode) => void;
 }
 
-export const Header: React.FC<HeaderProps> = ({ currentCategory, onCategoryChange, viewMode, onViewModeChange }) => {
+export const Header = React.memo<HeaderProps>(({ currentCategory, onCategoryChange, viewMode, onViewModeChange }) => {
   const [showViewModeDropdown, setShowViewModeDropdown] = useState(false);
   const categories = [
     { id: 'top', name: 'Top Stories' },
@@ -23,28 +23,48 @@ export const Header: React.FC<HeaderProps> = ({ currentCategory, onCategoryChang
         <h1>Hacker News • Classic Style</h1>
         <div className="tagline">News for Nerds, Stuff that Matters (via HackerNews API)</div>
       </div>
-      <nav className="navigation">
+      <nav id="navigation" className="navigation" role="navigation" aria-label="Main navigation">
         <div className="nav-left">
-          {categories.map(category => (
-            <a
-              key={category.id}
-              href="#"
-              className={currentCategory === category.id ? 'active' : ''}
-              onClick={(e) => {
-                e.preventDefault();
-                onCategoryChange(category.id);
-              }}
-            >
-              {category.name}
-            </a>
-          ))}
-          <span className="nav-separator">|</span>
-          <a href="https://news.ycombinator.com/" target="_blank" rel="noopener noreferrer">
-            Original HN
-          </a>
-          <a href="https://github.com/HackerNews/API" target="_blank" rel="noopener noreferrer">
-            HN API
-          </a>
+          <ul role="list" style={{ display: 'flex', listStyle: 'none', margin: 0, padding: 0, gap: '1rem' }}>
+            {categories.map(category => (
+              <li key={category.id}>
+                <a
+                  href="#"
+                  className={currentCategory === category.id ? 'active' : ''}
+                  aria-current={currentCategory === category.id ? 'page' : undefined}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onCategoryChange(category.id);
+                  }}
+                >
+                  {category.name}
+                </a>
+              </li>
+            ))}
+            <li aria-hidden="true">
+              <span className="nav-separator">|</span>
+            </li>
+            <li>
+              <a 
+                href="https://news.ycombinator.com/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                aria-label="Original Hacker News (opens in new tab)"
+              >
+                Original HN
+              </a>
+            </li>
+            <li>
+              <a 
+                href="https://github.com/HackerNews/API" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                aria-label="Hacker News API documentation (opens in new tab)"
+              >
+                HN API
+              </a>
+            </li>
+          </ul>
         </div>
 
         <div className="nav-right">
@@ -52,38 +72,51 @@ export const Header: React.FC<HeaderProps> = ({ currentCategory, onCategoryChang
             <button 
               className="gear-btn"
               onClick={() => setShowViewModeDropdown(!showViewModeDropdown)}
-              title="View Options"
+              aria-label="View Options"
+              aria-haspopup="menu"
+              aria-expanded={showViewModeDropdown}
+              type="button"
             >
               ⚙️
             </button>
             {showViewModeDropdown && (
-              <div className="dropdown-content">
+              <div 
+                className="dropdown-content" 
+                role="menu" 
+                aria-label="View mode options"
+              >
                 <button 
                   className={`dropdown-item ${viewMode === 'title' ? 'active' : ''}`}
+                  role="menuitem"
+                  aria-checked={viewMode === 'title'}
                   onClick={() => {
                     onViewModeChange('title');
                     setShowViewModeDropdown(false);
                   }}
                 >
-                  📋 Title View
+                  <span aria-hidden="true">📋</span> Title View
                 </button>
                 <button 
                   className={`dropdown-item ${viewMode === 'compact' ? 'active' : ''}`}
+                  role="menuitem"
+                  aria-checked={viewMode === 'compact'}
                   onClick={() => {
                     onViewModeChange('compact');
                     setShowViewModeDropdown(false);
                   }}
                 >
-                  📰 Compact View
+                  <span aria-hidden="true">📰</span> Compact View
                 </button>
                 <button 
                   className={`dropdown-item ${viewMode === 'full' ? 'active' : ''}`}
+                  role="menuitem"
+                  aria-checked={viewMode === 'full'}
                   onClick={() => {
                     onViewModeChange('full');
                     setShowViewModeDropdown(false);
                   }}
                 >
-                  📖 Full View
+                  <span aria-hidden="true">📖</span> Full View
                 </button>
               </div>
             )}
@@ -92,4 +125,7 @@ export const Header: React.FC<HeaderProps> = ({ currentCategory, onCategoryChang
       </nav>
     </>
   );
-};
+}, (prevProps, nextProps) => {
+  return prevProps.currentCategory === nextProps.currentCategory &&
+         prevProps.viewMode === nextProps.viewMode;
+});

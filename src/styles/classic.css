@@ -1,4 +1,318 @@
 /* Classic news site styling inspired by Slashdot */
+
+/* Error Boundary Styles */
+.error-boundary {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 20px;
+  margin: 20px;
+  text-align: center;
+}
+
+.error-boundary-content h3 {
+  color: #d32f2f;
+  margin-top: 0;
+  font-size: 16px;
+}
+
+.error-boundary-content p {
+  color: #666;
+  margin: 10px 0;
+}
+
+.error-details {
+  text-align: left;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 10px;
+  margin: 15px 0;
+  font-size: 11px;
+}
+
+.error-details summary {
+  cursor: pointer;
+  font-weight: bold;
+  color: #d32f2f;
+  margin-bottom: 10px;
+}
+
+.error-message,
+.error-stack,
+.error-component-stack {
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 2px;
+  padding: 8px;
+  margin: 5px 0;
+  font-family: 'Courier New', monospace;
+  font-size: 10px;
+  white-space: pre-wrap;
+  overflow-x: auto;
+}
+
+.error-actions {
+  margin-top: 15px;
+}
+
+.retry-button,
+.reload-button,
+.retry-button-small {
+  background: #006666;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  margin: 0 5px;
+  font-size: 12px;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.retry-button:hover,
+.reload-button:hover,
+.retry-button-small:hover {
+  background: #005555;
+}
+
+.retry-button-small {
+  padding: 6px 12px;
+  font-size: 11px;
+}
+
+.story-error-fallback,
+.comments-error-fallback {
+  background: #fff8dc;
+  border: 1px solid #f0e68c;
+  border-radius: 4px;
+  padding: 15px;
+  margin: 10px 0;
+  text-align: center;
+}
+
+.story-error-content h4,
+.comments-error-content h5 {
+  color: #b8860b;
+  margin-top: 0;
+  font-size: 14px;
+}
+
+.story-error-content p,
+.comments-error-content p {
+  color: #666;
+  margin: 8px 0;
+  font-size: 12px;
+}
+
+/* Virtualized Comments Styles */
+.virtualized-comments-container {
+  border: 1px solid #e1e8ed;
+  border-radius: 4px;
+  margin-top: 10px;
+  background: white;
+}
+
+.virtualized-comment {
+  background: white;
+  border-bottom: 1px solid #f1f3f4;
+  transition: background-color 0.2s ease;
+}
+
+.virtualized-comment:hover {
+  background: #f9f9f9;
+}
+
+.collapse-button {
+  background: none;
+  border: none;
+  color: #006666;
+  cursor: pointer;
+  font-size: 11px;
+  margin-left: 8px;
+  padding: 2px 4px;
+  border-radius: 2px;
+}
+
+.collapse-button:hover {
+  background: #f0f0f0;
+  text-decoration: underline;
+}
+
+.virtualized-comment .comment-header {
+  padding: 6px 0 4px 0;
+  font-size: 11px;
+  color: #666;
+}
+
+.virtualized-comment .comment-text {
+  font-size: 13px;
+  line-height: 1.4;
+  padding-bottom: 8px;
+  word-wrap: break-word;
+}
+
+.virtualized-comment .comment-author {
+  font-weight: bold;
+  color: #006666;
+}
+
+/* Level-based styling for virtualized comments */
+.virtualized-comment.level-1 {
+  background: #fafafa;
+}
+
+.virtualized-comment.level-2 {
+  background: #f5f5f5;
+}
+
+.virtualized-comment.level-3 {
+  background: #f0f0f0;
+}
+
+.virtualized-comment.level-4 {
+  background: #ebebeb;
+}
+
+/* Accessibility Styles */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: absolute;
+  top: -40px;
+  left: 6px;
+  z-index: 1000;
+  color: white;
+  background: #006666;
+  padding: 8px 16px;
+  text-decoration: none;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: bold;
+  transition: top 0.3s;
+}
+
+.skip-link:focus {
+  top: 6px;
+}
+
+/* Focus indicators */
+.story-wrapper:focus-within,
+.comment:focus-within,
+.virtualized-comment:focus-within {
+  outline: 2px solid #006666;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Enhanced button focus states */
+button:focus-visible,
+.story-comments-btn:focus-visible,
+.compact-comments-btn:focus-visible,
+.collapse-button:focus-visible {
+  outline: 2px solid #006666;
+  outline-offset: 2px;
+  box-shadow: 0 0 0 4px rgba(0, 102, 102, 0.1);
+}
+
+/* Enhanced link focus states */
+a:focus-visible {
+  outline: 2px solid #006666;
+  outline-offset: 2px;
+  text-decoration: underline;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .story-wrapper,
+  .comment,
+  .virtualized-comment {
+    border: 2px solid;
+  }
+  
+  .story-comments-btn,
+  .compact-comments-btn,
+  .collapse-button {
+    border: 1px solid;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .virtualized-comment,
+  .skip-link,
+  .story-wrapper {
+    transition: none;
+  }
+  
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .story-wrapper,
+  .comment,
+  .virtualized-comment {
+    background: #1a1a1a;
+    color: #e0e0e0;
+    border-color: #404040;
+  }
+  
+  .story-wrapper:hover,
+  .virtualized-comment:hover {
+    background: #2a2a2a;
+  }
+  
+  .story-comments-btn,
+  .compact-comments-btn,
+  .collapse-button {
+    color: #4db8e8;
+  }
+  
+  .story-comments-btn:hover,
+  .compact-comments-btn:hover,
+  .collapse-button:hover {
+    background: #2a2a2a;
+  }
+}
+
+/* Keyboard navigation highlighting */
+[aria-selected="true"] {
+  background-color: rgba(0, 102, 102, 0.1);
+  border: 2px solid #006666;
+}
+
+/* Loading and error state accessibility */
+.loading,
+.error {
+  color: #666;
+  font-weight: bold;
+  padding: 20px;
+  text-align: center;
+}
+
+[aria-live] {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
 * {
   box-sizing: border-box;
 }

@@ -11,10 +11,11 @@ interface CommentWithLevel extends HackerNewsItem {
   level: number;
 }
 
-export const Comments: React.FC<CommentsProps> = ({ storyId }) => {
+export const Comments = React.memo<CommentsProps>(({ storyId }) => {
   const [comments, setComments] = useState<CommentWithLevel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [shouldUseVirtualization, setShouldUseVirtualization] = useState(false);
 
   const buildCommentTree = useCallback(async (
     commentIds: number[], 
@@ -51,6 +52,9 @@ export const Comments: React.FC<CommentsProps> = ({ storyId }) => {
 
       const commentsData = await buildCommentTree(story.kids, 0);
       setComments(commentsData);
+      
+      // Use virtualization for threads with more than 50 comments
+      setShouldUseVirtualization(commentsData.length > 50);
     } catch (err) {
       setError('Failed to load comments. Please try again later.');
       console.error('Error loading comments:', err);
@@ -100,6 +104,40 @@ export const Comments: React.FC<CommentsProps> = ({ storyId }) => {
     );
   }
 
+  // For large threads, show a simplified view (virtualization can be added later)
+  if (shouldUseVirtualization) {
+    return (
+      <div className="comments-section">
+        <h4>Comments ({comments.length}) - Large Thread</h4>
+        <p>This thread has many comments. Showing first 50 for performance.</p>
+        {comments.slice(0, 50).map((comment) => (
+          <div 
+            key={comment.id} 
+            className={`comment level-${Math.min(comment.level, 4)}`}
+          >
+            <div className="comment-header">
+              <span className="comment-author">{comment.by}</span>
+              {' • '}
+              <span>{formatTimeAgo(comment.time)}</span>
+              {comment.level > 0 && (
+                <>
+                  {' • '}
+                  <span>Reply level {comment.level + 1}</span>
+                </>
+              )}
+            </div>
+            <div 
+              className="comment-text"
+              dangerouslySetInnerHTML={{ 
+                __html: DOMPurify.sanitize(formatCommentText(comment.text || ''))
+              }}
+            />
+          </div>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="comments-section">
       <h4>Comments ({comments.length})</h4>
@@ -129,4 +167,6 @@ export const Comments: React.FC<CommentsProps> = ({ storyId }) => {
       ))}
     </div>
   );
-};
+}, (prevProps, nextProps) => {
+  return prevProps.storyId === nextProps.storyId;
+});
