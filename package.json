@@ -11,7 +11,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "pre-commit": "npm run build && npm run test:run && npm run lint",
-    "verify": "npm run pre-commit"
+    "verify": "npm run pre-commit",
+    "ci:simulate": "./scripts/simulate-ci.sh"
   },
   "dependencies": {
     "@types/dompurify": "^3.0.5",

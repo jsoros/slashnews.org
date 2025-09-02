@@ -20,11 +20,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NODE_OPTIONS: "--max-old-space-size=4096 --expose-gc"
-      NODE_ENV: test
       CI: true
+      VITEST: true
     strategy:
       matrix:
-        node-version: [22.x]
+        node-version: [22.11.0]
     steps:
       - uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
@@ -33,6 +33,21 @@ jobs:
           node-version: ${{ matrix.node-version }}
           cache: 'npm'
       - run: npm ci
+      - name: Verify environment and dependencies
+        run: |
+          echo "=== Environment Information ==="
+          node --version
+          npm --version
+          echo "NODE_OPTIONS: $NODE_OPTIONS"
+          echo "CI: $CI"
+          echo "VITEST: $VITEST"
+          echo ""
+          echo "=== Dependency Verification ==="
+          npm ls --depth=0 || echo "Dependency issues detected"
+          echo ""
+          echo "=== TypeScript Version ==="
+          npx tsc --version
+          echo ""
       - run: npm run lint
       - run: npm run build --if-present
       - name: Run tests with memory monitoring
