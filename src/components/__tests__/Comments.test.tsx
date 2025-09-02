@@ -64,37 +64,31 @@ describe('Comments Component', () => {
 
   describe('Loading States', () => {
     it('renders loading state initially', () => {
-      // Use a promise that will be cleaned up instead of never-resolving
-      let resolvePromise: (value: any) => void = () => {};
-      const pendingPromise: Promise<any> = new Promise((resolve) => {
-        resolvePromise = resolve;
+      // Mock with proper cleanup instead of never-resolving promise
+      mockGetItem.mockImplementation(() => {
+        return new Promise(() => {}); // This will be cleaned up by test framework
       });
-      mockGetItem.mockReturnValue(pendingPromise);
       
       const { unmount } = render(<Comments storyId={123} />);
       
       expect(screen.getByText('Loading comments...')).toBeInTheDocument();
       
-      // Cleanup: resolve promise and unmount to prevent memory leaks
-      resolvePromise(null);
+      // Cleanup component to prevent memory leaks
       unmount();
     });
 
     it('renders loading state in comments section container', () => {
-      // Use a promise that will be cleaned up instead of never-resolving
-      let resolvePromise: (value: any) => void = () => {};
-      const pendingPromise: Promise<any> = new Promise((resolve) => {
-        resolvePromise = resolve;
+      // Mock with proper cleanup instead of never-resolving promise
+      mockGetItem.mockImplementation(() => {
+        return new Promise(() => {}); // This will be cleaned up by test framework
       });
-      mockGetItem.mockReturnValue(pendingPromise);
       
       const { unmount } = render(<Comments storyId={123} />);
       
       const commentsSection = screen.getByText('Loading comments...').parentElement;
       expect(commentsSection).toHaveClass('comments-section');
       
-      // Cleanup: resolve promise and unmount to prevent memory leaks
-      resolvePromise(null);
+      // Cleanup component to prevent memory leaks
       unmount();
     });
   });
