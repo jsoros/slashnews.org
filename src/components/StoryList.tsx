@@ -48,7 +48,7 @@ export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMod
     }
     elements.clear();
     actions.clearVisibleStories();
-  }, [category]);
+  }, [category, actions]);
 
   // Setup intersection observer to track visible stories
   useEffect(() => {
@@ -79,7 +79,7 @@ export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMod
       }
       elements.clear();
     };
-  }, []);
+  }, [actions]);
 
   const toggleComments = useCallback((storyId: number) => {
     actions.toggleStoryExpansion(storyId);
@@ -110,7 +110,7 @@ export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMod
     const loadSummariesForVisibleStories = async () => {
       const loadableStories = computed.getLoadableSummaries(
         stories.map(s => s.id), 
-        (id) => {
+        (id: number) => {
           const story = stories.find(s => s.id === id);
           return !!(story?.url && !story.text);
         }
