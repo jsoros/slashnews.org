@@ -1,34 +1,52 @@
-import React, { useEffect, useCallback, useRef } from 'react';
-import { hackerNewsApi, type HackerNewsItem } from '../services/hackerNewsApi';
+import React, { useEffect, useCallback, useRef, useMemo } from 'react';
+import type { HackerNewsItem } from '../services/hackerNewsApi';
 import { useStoryData } from '../hooks/useStoryData';
 import { useStoryListState } from '../hooks/useStoryListState';
+import { useHiddenArticles } from '../hooks/useHiddenArticles';
 import { StoryCard } from './StoryCard';
 import { StoryErrorBoundary } from './ErrorBoundary';
+import { hackerNewsApi } from '../services/hackerNewsApi';
 
 type ViewMode = 'title' | 'compact' | 'full';
 
 interface StoryListProps {
   category?: string;
   viewMode: ViewMode;
+  showHiddenArticles?: boolean;
 }
 
-export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMode }) => {
-  const { 
-    stories, 
-    loading, 
-    error, 
-    loadStories, 
-    loadMoreStories, 
-    loadingMore, 
+export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMode, showHiddenArticles = false }) => {
+  const {
+    stories,
+    loading,
+    error,
+    loadStories,
+    loadMoreStories,
+    loadingMore,
     hasMoreStories,
-    storiesCount,
-    totalCount 
+    totalCount
   } = useStoryData(category);
 
-  // Use the new reducer-based state management
+  const { hideArticle, showArticle, isArticleHidden } = useHiddenArticles();
+
+  // Restore complex state management for summary loading
   const { state, actions, computed } = useStoryListState();
   const observerRef = useRef<IntersectionObserver | null>(null);
   const observedElements = useRef<Map<number, Element>>(new Map());
+
+  // Use state management for expanded story instead of local state
+  const expandedStory = state.expandedStory;
+
+  // Filter articles based on hidden state and toggle
+  const visibleStories = useMemo(() => {
+    if (showHiddenArticles) {
+      // Show all stories when toggle is on
+      return stories;
+    } else {
+      // Filter out hidden articles when toggle is off
+      return stories.filter(story => !isArticleHidden(story.id));
+    }
+  }, [stories, isArticleHidden, showHiddenArticles]);
 
 
   useEffect(() => {
@@ -37,118 +55,101 @@ export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMod
 
   // Clean up observed elements when category changes
   useEffect(() => {
-    // Clear all observed elements and visible stories when category changes
+    // Clear all observed elements when category changes
     const observer = observerRef.current;
     const elements = observedElements.current;
-    
+
     if (observer) {
       elements.forEach((element) => {
         observer.unobserve(element);
       });
     }
     elements.clear();
-    actions.clearVisibleStories();
+    actions.clearAllState(); // Reset all state including expanded story on category change
   }, [category, actions]);
 
+  // TEMPORARILY DISABLED: Intersection observer causing maximum update depth errors
   // Setup intersection observer to track visible stories
-  useEffect(() => {
-    const elements = observedElements.current;
-    
-    observerRef.current = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          const storyId = parseInt(entry.target.getAttribute('data-story-id') || '0');
-          if (entry.isIntersecting) {
-            actions.addVisibleStory(storyId);
-          }
-        });
-      },
-      {
-        rootMargin: '100px', // Start loading summaries when stories are 100px from viewport
-        threshold: 0.1
-      }
-    );
-
-    // Cleanup function to properly disconnect observer and clear references
-    return () => {
-      const observer = observerRef.current;
-      
-      if (observer) {
-        observer.disconnect();
-        observerRef.current = null;
-      }
-      elements.clear();
-    };
-  }, [actions]);
+  // useEffect(() => {
+  //   // Intersection observer logic disabled temporarily
+  //   return () => {
+  //     // Cleanup
+  //   };
+  // }, [actions]);
 
   const toggleComments = useCallback((storyId: number) => {
     actions.toggleStoryExpansion(storyId);
   }, [actions]);
 
 
-  const loadSummary = useCallback(async (story: HackerNewsItem) => {
-    if (!computed.shouldLoadSummary(story.id, !!story.url)) {
+  // Load summary function with stable dependencies to prevent infinite loops
+  const loadSummaryRef = useRef<(story: HackerNewsItem) => Promise<void>>(async () => {});
+
+  loadSummaryRef.current = async (story: HackerNewsItem) => {
+    if (!story.url) {
+      return;
+    }
+
+    // Check if we should load this summary by accessing current state
+    if (state.summaries.has(story.id) ||
+        state.loadingSummaries.has(story.id) ||
+        state.failedSummaries.has(story.id)) {
       return;
     }
 
     actions.startSummaryLoading(story.id);
 
     try {
-      const summary = await hackerNewsApi.getArticleSummary(story.url!);
+      const summary = await hackerNewsApi.getArticleSummary(story.url);
       if (summary) {
         actions.setSummarySuccess(story.id, summary);
       } else {
         actions.setSummaryFailed(story.id);
       }
-    } catch {
+    } catch (error) {
+      console.warn(`Failed to load summary for story ${story.id}:`, error);
       actions.setSummaryFailed(story.id);
     }
-  }, [computed, actions]);
+  };
 
-  // Load summaries only for visible stories with conservative rate limiting
+  const loadSummary = useCallback((story: HackerNewsItem) => {
+    loadSummaryRef.current?.(story);
+  }, []);
+
+  // Load summaries for visible stories with debouncing to prevent infinite loops
   useEffect(() => {
-    const loadSummariesForVisibleStories = async () => {
-      const loadableStories = computed.getLoadableSummaries(
-        stories.map(s => s.id), 
-        (id: number) => {
-          const story = stories.find(s => s.id === id);
-          return !!(story?.url && !story.text);
-        }
-      );
-      
-      // Load summaries sequentially with delay to avoid rate limiting
-      for (let i = 0; i < loadableStories.length; i++) {
-        const storyId = loadableStories[i];
-        const story = stories.find(s => s.id === storyId);
-        if (story) {
-          await loadSummary(story);
-          
-          // Delay between requests to avoid rate limiting (1 second)
-          if (i < loadableStories.length - 1) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
-          }
-        }
+    if (loading || !visibleStories.length) {
+      return;
+    }
+
+    const loadSummariesForVisible = async () => {
+      // Get stories that need summaries loaded - limit to first 5 to prevent overload
+      const storiesToLoad = visibleStories
+        .slice(0, 5)
+        .filter(story => Boolean(story.url));
+
+      // Load summaries in parallel but with limited concurrency
+      for (const story of storiesToLoad) {
+        loadSummary(story);
       }
     };
 
-    if (state.visibleStories.size > 0 && stories.length > 0) {
-      loadSummariesForVisibleStories();
-    }
-  }, [state.visibleStories, stories, computed, loadSummary]);
+    // Debounce summary loading to prevent rapid firing
+    const timeoutId = setTimeout(async () => {
+      try {
+        await loadSummariesForVisible();
+      } catch (error) {
+        console.error('Error in loadSummariesForVisible:', error);
+      }
+    }, 100);
+    return () => clearTimeout(timeoutId);
+  }, [visibleStories, loading, loadSummary]);
 
-  // Observe stories when they're added to the DOM with proper cleanup
+  // TEMPORARILY DISABLED: Story ref callback for intersection observer
   const storyRef = useCallback((node: HTMLDivElement | null, storyId: number) => {
-    // Clean up previous observation if element is being replaced
-    const previousElement = observedElements.current.get(storyId);
-    if (previousElement && observerRef.current) {
-      observerRef.current.unobserve(previousElement);
-      observedElements.current.delete(storyId);
-    }
-
-    if (node && observerRef.current) {
+    // Disabled - intersection observer temporarily removed
+    if (node) {
       node.setAttribute('data-story-id', storyId.toString());
-      observerRef.current.observe(node);
-      observedElements.current.set(storyId, node);
     }
   }, []);
 
@@ -162,29 +163,33 @@ export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMod
 
   return (
     <div className="stories-container">
-      {stories.map((story) => (
+      {visibleStories.map((story) => (
         <div key={story.id} ref={(node) => storyRef(node, story.id)}>
           <StoryErrorBoundary>
             <StoryCard
               story={story}
               viewMode={viewMode}
-              expandedStory={state.expandedStory}
+              expandedStory={expandedStory}
               summary={computed.getSummary(story.id)}
               loadingSummary={computed.isLoadingSummary(story.id)}
               summaryFailed={computed.isSummaryFailed(story.id)}
               onToggleComments={toggleComments}
+              onHideArticle={hideArticle}
+              onShowArticle={showArticle}
+              isHidden={isArticleHidden(story.id)}
+              showingHidden={showHiddenArticles}
             />
           </StoryErrorBoundary>
         </div>
       ))}
-      
+
       {/* Load More Section */}
       {hasMoreStories && (
         <div className="load-more-section">
           <div className="story-count">
-            Showing {storiesCount} of {totalCount} stories
+            Showing {visibleStories.length} of {totalCount} stories
           </div>
-          <button 
+          <button
             className="load-more-btn"
             onClick={loadMoreStories}
             disabled={loadingMore}
@@ -197,5 +202,6 @@ export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMod
   );
 }, (prevProps, nextProps) => {
   return prevProps.category === nextProps.category &&
-         prevProps.viewMode === nextProps.viewMode;
+         prevProps.viewMode === nextProps.viewMode &&
+         prevProps.showHiddenArticles === nextProps.showHiddenArticles;
 });

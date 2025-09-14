@@ -15,6 +15,10 @@ interface StoryCardProps {
   loadingSummary?: boolean;
   summaryFailed?: boolean;
   onToggleComments: (storyId: number) => void;
+  onHideArticle: (storyId: number) => void;
+  onShowArticle: (storyId: number) => void;
+  isHidden: boolean;
+  showingHidden: boolean;
 }
 
 const getStoryIcon = (story: HackerNewsItem): string => {
@@ -47,10 +51,14 @@ export const StoryCard = React.memo<StoryCardProps>(({
   summary,
   loadingSummary,
   summaryFailed,
-  onToggleComments
+  onToggleComments,
+  onHideArticle,
+  onShowArticle,
+  isHidden,
+  showingHidden
 }) => {
   return (
-    <div className={`story-wrapper view-${viewMode}`}>
+    <div className={`story-wrapper view-${viewMode} ${isHidden && showingHidden ? 'hidden-story' : ''}`}>
       {/* Title View - Just title with minimal styling */}
       {viewMode === 'title' && (
         <div className="title-view">
@@ -63,21 +71,61 @@ export const StoryCard = React.memo<StoryCardProps>(({
               <span>{story.title}</span>
             )}
           </h3>
+          {isHidden && showingHidden ? (
+            <button
+              className="restore-article-btn"
+              onClick={() => onShowArticle(story.id)}
+              aria-label={`Restore article: ${story.title}`}
+              title="Restore this article"
+            >
+              ↺
+            </button>
+          ) : (
+            <button
+              className="remove-article-btn"
+              onClick={() => onHideArticle(story.id)}
+              aria-label={`Hide article: ${story.title}`}
+              title="Hide this article"
+            >
+              ×
+            </button>
+          )}
         </div>
       )}
 
       {/* Compact View - Title + dense metadata underneath */}
       {viewMode === 'compact' && (
         <div className="compact-view">
-          <h3 className="compact-title">
-            {story.url ? (
-              <a href={story.url} target="_blank" rel="noopener noreferrer">
-                {story.title}
-              </a>
+          <div className="compact-header">
+            <h3 className="compact-title">
+              {story.url ? (
+                <a href={story.url} target="_blank" rel="noopener noreferrer">
+                  {story.title}
+                </a>
+              ) : (
+                <span>{story.title}</span>
+              )}
+            </h3>
+            {isHidden && showingHidden ? (
+              <button
+                className="restore-article-btn"
+                onClick={() => onShowArticle(story.id)}
+                aria-label={`Restore article: ${story.title}`}
+                title="Restore this article"
+              >
+                ↺
+              </button>
             ) : (
-              <span>{story.title}</span>
+              <button
+                className="remove-article-btn"
+                onClick={() => onHideArticle(story.id)}
+                aria-label={`Hide article: ${story.title}`}
+                title="Hide this article"
+              >
+                ×
+              </button>
             )}
-          </h3>
+          </div>
           <div className="compact-meta">
             <span className="compact-author">{story.by}</span>
             <span className="compact-separator">•</span>
@@ -132,15 +180,36 @@ export const StoryCard = React.memo<StoryCardProps>(({
       {/* Full View - Full story card with header, content, and footer */}
       {viewMode === 'full' && (
         <>
-          <h2 className="story-title">
-            {story.url ? (
-              <a href={story.url} target="_blank" rel="noopener noreferrer">
-                {getStoryIcon(story)} {story.title}
-              </a>
+          <div className="full-header">
+            <h2 className="story-title">
+              {story.url ? (
+                <a href={story.url} target="_blank" rel="noopener noreferrer">
+                  {getStoryIcon(story)} {story.title}
+                </a>
+              ) : (
+                <span>{getStoryIcon(story)} {story.title}</span>
+              )}
+            </h2>
+            {isHidden && showingHidden ? (
+              <button
+                className="restore-article-btn"
+                onClick={() => onShowArticle(story.id)}
+                aria-label={`Restore article: ${story.title}`}
+                title="Restore this article"
+              >
+                ↺
+              </button>
             ) : (
-              <span>{getStoryIcon(story)} {story.title}</span>
+              <button
+                className="remove-article-btn"
+                onClick={() => onHideArticle(story.id)}
+                aria-label={`Hide article: ${story.title}`}
+                title="Hide this article"
+              >
+                ×
+              </button>
             )}
-          </h2>
+          </div>
 
           <div className="story-card">
             <div className="story-card-header">
@@ -263,5 +332,6 @@ export const StoryCard = React.memo<StoryCardProps>(({
          prevProps.expandedStory === nextProps.expandedStory &&
          prevProps.summary === nextProps.summary &&
          prevProps.loadingSummary === nextProps.loadingSummary &&
-         prevProps.summaryFailed === nextProps.summaryFailed;
+         prevProps.summaryFailed === nextProps.summaryFailed &&
+         prevProps.onToggleComments === nextProps.onToggleComments;
 });

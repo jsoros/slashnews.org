@@ -77,7 +77,7 @@ export class PerformanceMonitor {
   }
 
   private logMetric(name: string, value: number, type: string): void {
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.log(`[Performance ${type}] ${name}: ${Math.round(value)}ms`);
     }
     

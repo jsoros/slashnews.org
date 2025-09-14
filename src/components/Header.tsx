@@ -7,9 +7,14 @@ interface HeaderProps {
   onCategoryChange: (category: string) => void;
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
+  showAbout: boolean;
+  onShowAbout: () => void;
+  showHiddenArticles: boolean;
+  onToggleHiddenArticles: () => void;
+  onClearHiddenArticles: () => void;
 }
 
-export const Header = React.memo<HeaderProps>(({ currentCategory, onCategoryChange, viewMode, onViewModeChange }) => {
+export const Header = React.memo<HeaderProps>(({ currentCategory, onCategoryChange, viewMode, onViewModeChange, showAbout, onShowAbout, showHiddenArticles, onToggleHiddenArticles, onClearHiddenArticles }) => {
   const [showViewModeDropdown, setShowViewModeDropdown] = useState(false);
   const categories = [
     { id: 'top', name: 'Top Stories' },
@@ -55,13 +60,26 @@ export const Header = React.memo<HeaderProps>(({ currentCategory, onCategoryChan
               </a>
             </li>
             <li>
-              <a 
-                href="https://github.com/HackerNews/API" 
-                target="_blank" 
+              <a
+                href="https://github.com/HackerNews/API"
+                target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Hacker News API documentation (opens in new tab)"
               >
                 HN API
+              </a>
+            </li>
+            <li>
+              <a
+                href="#"
+                className={showAbout ? 'active' : ''}
+                aria-current={showAbout ? 'page' : undefined}
+                onClick={(e) => {
+                  e.preventDefault();
+                  onShowAbout();
+                }}
+              >
+                About
               </a>
             </li>
           </ul>
@@ -107,7 +125,7 @@ export const Header = React.memo<HeaderProps>(({ currentCategory, onCategoryChan
                 >
                   <span aria-hidden="true">📰</span> Compact View
                 </button>
-                <button 
+                <button
                   className={`dropdown-item ${viewMode === 'full' ? 'active' : ''}`}
                   role="menuitem"
                   aria-checked={viewMode === 'full'}
@@ -118,6 +136,31 @@ export const Header = React.memo<HeaderProps>(({ currentCategory, onCategoryChan
                 >
                   <span aria-hidden="true">📖</span> Full View
                 </button>
+
+                <div className="dropdown-separator" />
+
+                <button
+                  className={`dropdown-item ${showHiddenArticles ? 'active' : ''}`}
+                  role="menuitem"
+                  aria-checked={showHiddenArticles}
+                  onClick={() => {
+                    onToggleHiddenArticles();
+                    setShowViewModeDropdown(false);
+                  }}
+                >
+                  <span aria-hidden="true">👁️</span> Show Hidden Articles
+                </button>
+
+                <button
+                  className="dropdown-item dropdown-item-danger"
+                  role="menuitem"
+                  onClick={() => {
+                    onClearHiddenArticles();
+                    setShowViewModeDropdown(false);
+                  }}
+                >
+                  <span aria-hidden="true">🗑️</span> Clear All Hidden Articles
+                </button>
               </div>
             )}
           </div>
@@ -127,5 +170,7 @@ export const Header = React.memo<HeaderProps>(({ currentCategory, onCategoryChan
   );
 }, (prevProps, nextProps) => {
   return prevProps.currentCategory === nextProps.currentCategory &&
-         prevProps.viewMode === nextProps.viewMode;
+         prevProps.viewMode === nextProps.viewMode &&
+         prevProps.showAbout === nextProps.showAbout &&
+         prevProps.showHiddenArticles === nextProps.showHiddenArticles;
 });

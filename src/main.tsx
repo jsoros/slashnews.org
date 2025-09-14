@@ -8,7 +8,7 @@ import { performanceMonitor } from './utils/performance'
 performanceMonitor.mark('app-init-start');
 
 // Log memory usage periodically in development
-if (process.env.NODE_ENV === 'development') {
+if (import.meta.env.DEV) {
   setInterval(() => {
     performanceMonitor.logMemoryUsage();
   }, 30000); // Every 30 seconds
