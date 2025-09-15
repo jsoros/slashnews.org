@@ -26,7 +26,7 @@ run_test_file() {
     local file="$1"
     echo "🔍 Testing: $file"
 
-    if NODE_OPTIONS="--max-old-space-size=2048 --expose-gc" npx vitest run "$file" --reporter=basic --no-coverage; then
+    if NODE_OPTIONS="--max-old-space-size=4096 --expose-gc" npx vitest run "$file" --reporter=basic --no-coverage; then
         echo "✅ $file - PASSED"
         return 0
     else
