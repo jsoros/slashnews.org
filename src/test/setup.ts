@@ -6,7 +6,6 @@ import { hackerNewsApi } from '../services/hackerNewsApi';
 
 // Enhanced memory leak prevention for test environments
 const isTestEnv = import.meta.env.MODE === 'test' || import.meta.env.VITEST === 'true';
-const isCIEnv = import.meta.env.CI === 'true';
 
 let initialMemory: NodeJS.MemoryUsage;
 
@@ -17,8 +16,8 @@ const enableMemoryManagement = isTestEnv;
 function forceGarbageCollection() {
   if (global.gc) {
     global.gc();
-  } else if (typeof (global as any).collectGarbage === 'function') {
-    (global as any).collectGarbage();
+  } else if (typeof (global as typeof globalThis & { collectGarbage?: () => void }).collectGarbage === 'function') {
+    (global as typeof globalThis & { collectGarbage: () => void }).collectGarbage();
   }
 }
 
@@ -26,7 +25,8 @@ function forceGarbageCollection() {
 function clearAllTimers() {
   // Clear all timers that might be holding references
   const highestTimeoutId = setTimeout(() => {}, 0);
-  for (let i = 0; i < highestTimeoutId; i++) {
+  const timeoutNum = Number(highestTimeoutId);
+  for (let i = 0; i < timeoutNum; i++) {
     clearTimeout(i);
     clearInterval(i);
   }
