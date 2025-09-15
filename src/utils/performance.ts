@@ -77,7 +77,7 @@ export class PerformanceMonitor {
   }
 
   private logMetric(name: string, value: number, type: string): void {
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       console.log(`[Performance ${type}] ${name}: ${Math.round(value)}ms`);
     }
     
@@ -167,6 +167,14 @@ export class PerformanceMonitor {
     this.observers.forEach(observer => observer.disconnect());
     this.observers = [];
     this.measurements.clear();
+  }
+
+  // Reset singleton instance (for testing)
+  static resetInstance(): void {
+    if (PerformanceMonitor.instance) {
+      PerformanceMonitor.instance.dispose();
+      PerformanceMonitor.instance = undefined as unknown as PerformanceMonitor;
+    }
   }
 }
 

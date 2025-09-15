@@ -623,6 +623,142 @@ body {
   border-color: #005555;
 }
 
+/* Remove Article Button */
+.remove-article-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 12px;
+  font-weight: bold;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.remove-article-btn:hover {
+  background: rgba(255, 0, 0, 0.8);
+  transform: scale(1.1);
+}
+
+/* Container positioning for remove buttons */
+.title-view,
+.compact-view,
+.full-header {
+  position: relative;
+}
+
+.story-wrapper:hover .remove-article-btn {
+  opacity: 1;
+}
+
+/* Specific adjustments for different view modes */
+.view-title .title-view {
+  padding-right: 25px;
+}
+
+.view-compact .compact-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.view-compact .compact-title {
+  flex: 1;
+  margin: 0;
+}
+
+.view-full .full-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.view-full .story-title {
+  flex: 1;
+}
+
+/* Hidden Articles Styling */
+.hidden-story {
+  opacity: 0.5;
+  background-color: #f5f5f5;
+  border-left: 3px solid #ff6b6b;
+}
+
+.hidden-story .story-card {
+  background-color: #fafafa;
+}
+
+.hidden-story .story-title {
+  background: linear-gradient(135deg, #999 0%, #bbb 100%) !important;
+  color: #666 !important;
+}
+
+.hidden-story .story-title a {
+  color: #666 !important;
+}
+
+/* Restore Article Button */
+.restore-article-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  background: rgba(34, 139, 34, 0.8);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s ease;
+  z-index: 10;
+}
+
+.restore-article-btn:hover {
+  background: rgba(34, 139, 34, 1);
+  transform: scale(1.1);
+}
+
+.story-wrapper:hover .restore-article-btn {
+  opacity: 1;
+}
+
+/* Dropdown separator */
+.dropdown-separator {
+  height: 1px;
+  background-color: #e1e8ed;
+  margin: 4px 0;
+}
+
+/* Dangerous action styling */
+.dropdown-item-danger {
+  color: #d32f2f !important;
+}
+
+.dropdown-item-danger:hover {
+  background-color: #ffebee !important;
+  color: #c62828 !important;
+}
+
 /* Card Header */
 .story-card-header {
   display: flex;
