@@ -9,11 +9,10 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
-    "test:run": "NODE_OPTIONS=\"--max-old-space-size=2048\" vitest run",
-    "test:run:safe": "NODE_OPTIONS=\"--max-old-space-size=4096 --expose-gc\" vitest run --no-coverage --reporter=basic",
-    "test:memory-safe": "./scripts/test-memory-safe.sh",
-    "pre-commit": "npm run build && npm run test:memory-safe && npm run lint",
-    "verify": "npm run pre-commit",
+    "test:run": "vitest run",
+    "test:run:safe": "vitest run --no-coverage --reporter=basic",
+    "pre-commit": "bun run build && bun run test:run && bun run lint",
+    "verify": "bun run pre-commit",
     "ci:simulate": "./scripts/simulate-ci.sh"
   },
   "dependencies": {

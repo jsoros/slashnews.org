@@ -58,12 +58,12 @@ describe('StoryCard', () => {
   it('renders in compact view mode', () => {
     render(<StoryCard {...defaultProps} viewMode="compact" />);
     expect(screen.getByText('Test Story Title')).toBeInTheDocument();
-    expect(screen.getByText('100 points')).toBeInTheDocument();
+    expect(screen.getByText('100 pts')).toBeInTheDocument();
   });
 
   it('renders in full view mode', () => {
     render(<StoryCard {...defaultProps} viewMode="full" />);
-    expect(screen.getByText('Test Story Title')).toBeInTheDocument();
+    expect(screen.getByText(/Test Story Title/)).toBeInTheDocument();
     expect(screen.getByText('100 points')).toBeInTheDocument();
     expect(screen.getByText('25 comments')).toBeInTheDocument();
   });

@@ -1,4 +1,4 @@
-name: Node.js CI
+name: Bun CI
 
 on:
   push:
@@ -19,42 +19,39 @@ jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
     env:
-      NODE_OPTIONS: "--max-old-space-size=4096 --expose-gc"
       CI: true
       VITEST: true
     strategy:
       matrix:
-        node-version: [22.19.0]
+        bun-version: [latest]
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v4
+      - name: Setup Bun ${{ matrix.bun-version }}
+        uses: oven-sh/setup-bun@v2
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-      - run: npm ci
+          bun-version: ${{ matrix.bun-version }}
+      - run: bun install
       - name: Verify environment and dependencies
         run: |
           echo "=== Environment Information ==="
+          bun --version
           node --version
-          npm --version
-          echo "NODE_OPTIONS: $NODE_OPTIONS"
           echo "CI: $CI"
           echo "VITEST: $VITEST"
           echo ""
           echo "=== Dependency Verification ==="
-          npm ls --depth=0 || echo "Dependency issues detected"
+          bun pm ls || echo "Dependency issues detected"
           echo ""
           echo "=== TypeScript Version ==="
-          npx tsc --version
+          bunx tsc --version
           echo ""
-      - run: npm run lint
-      - run: npm run build --if-present
+      - run: bun run lint
+      - run: bun run build --if-present
       - name: Run tests with memory monitoring
         run: |
           echo "Available memory before tests:"
           free -h
-          npm run test:run
+          bun run test:run
           echo "Available memory after tests:"
           free -h
       - name: Setup Pages
