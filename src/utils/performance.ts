@@ -168,6 +168,14 @@ export class PerformanceMonitor {
     this.observers = [];
     this.measurements.clear();
   }
+
+  // Reset singleton instance (for testing)
+  static resetInstance(): void {
+    if (PerformanceMonitor.instance) {
+      PerformanceMonitor.instance.dispose();
+      PerformanceMonitor.instance = undefined as unknown as PerformanceMonitor;
+    }
+  }
 }
 
 // Convenience functions for React components
