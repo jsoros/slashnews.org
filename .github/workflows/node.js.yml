@@ -46,7 +46,7 @@ jobs:
           bunx tsc --version
           echo ""
       - run: bun run lint
-      - run: bun run build --if-present
+      - run: bun run build
       - name: Run tests with memory monitoring
         run: |
           echo "Available memory before tests:"
