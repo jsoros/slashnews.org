@@ -1053,10 +1053,16 @@ body {
 
   .nav-left a {
     white-space: nowrap;
+    display: inline-block;
   }
 
   .nav-left ul {
-    flex-wrap: nowrap;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .nav-left li {
+    white-space: nowrap;
   }
   
   .nav-right {
