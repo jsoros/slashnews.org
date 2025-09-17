@@ -6,7 +6,7 @@ import { Footer } from './components/Footer';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useSkipLinks, useAnnouncer } from './hooks/useKeyboardNavigation';
 import { useHiddenArticles } from './hooks/useHiddenArticles';
-import './styles/classic.css';
+import './styles/toodles.css';
 
 type ViewMode = 'title' | 'compact' | 'full';
 

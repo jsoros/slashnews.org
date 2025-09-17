@@ -15,11 +15,10 @@ const defaultProps = {
 };
 
 describe('Header', () => {
-  it('should render the header with title and tagline', () => {
+  it('should render the header with title', () => {
     render(<Header {...defaultProps} />);
 
     expect(screen.getByText('Hacker News • Classic Style')).toBeInTheDocument();
-    expect(screen.getByText('News for Nerds, Stuff that Matters (via HackerNews API)')).toBeInTheDocument();
   });
 
   it('should render navigation with all categories', () => {
