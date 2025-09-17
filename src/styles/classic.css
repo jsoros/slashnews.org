@@ -1050,6 +1050,14 @@ body {
     gap: 12px;
     justify-content: center;
   }
+
+  .nav-left a {
+    white-space: nowrap;
+  }
+
+  .nav-left ul {
+    flex-wrap: nowrap;
+  }
   
   .nav-right {
     justify-content: center;
