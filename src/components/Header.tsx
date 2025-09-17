@@ -26,7 +26,6 @@ export const Header = React.memo<HeaderProps>(({ currentCategory, onCategoryChan
     <>
       <div className="header">
         <h1>Hacker News • Classic Style</h1>
-        <div className="tagline">News for Nerds, Stuff that Matters (via HackerNews API)</div>
       </div>
       <nav id="navigation" className="navigation" role="navigation" aria-label="Main navigation">
         <div className="nav-left">
