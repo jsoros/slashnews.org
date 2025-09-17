@@ -1183,9 +1183,37 @@ body {
 
 /* Failed summary styling */
 .failed-summary {
+  display: flex;
+  align-items: center;
   color: #999;
   font-size: 10px;
   margin: 6px 0;
+}
+
+.failed-summary em {
+  margin-right: 4px;
+}
+
+/* Retry Summary Button */
+.retry-summary-btn {
+  background: #4CAF50;
+  color: white;
+  border: none;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 9px;
+  cursor: pointer;
+  margin-left: 6px;
+  transition: background-color 0.2s ease;
+  font-weight: 500;
+}
+
+.retry-summary-btn:hover {
+  background: #45a049;
+}
+
+.retry-summary-btn:active {
+  transform: translateY(1px);
 }
 
 /* Load More Section */

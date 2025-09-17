@@ -203,8 +203,12 @@ export class CircuitBreakerRegistry {
     operation: () => Promise<T>,
     retryOptions?: Partial<RetryOptions>
   ): Promise<T> {
-    // Skip circuit breaker in test environment to prevent memory issues and hanging
-    if (import.meta.env.MODE === 'test' || import.meta.env.VITEST === 'true') {
+    // Skip circuit breaker only in test environment to prevent memory issues and hanging
+    const isTestEnvironment = import.meta.env.MODE === 'test' ||
+                             import.meta.env.VITEST === 'true' ||
+                             (typeof process !== 'undefined' && process.env.NODE_ENV === 'test');
+
+    if (isTestEnvironment) {
       return operation();
     }
 
