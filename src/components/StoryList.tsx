@@ -81,6 +81,15 @@ export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMod
     actions.toggleStoryExpansion(storyId);
   }, [actions]);
 
+  const retrySummary = useCallback((storyId: number) => {
+    // Reset the failed state and retry loading
+    actions.startSummaryLoading(storyId);
+    const story = visibleStories.find(s => s.id === storyId);
+    if (story) {
+      loadSummaryRef.current?.(story);
+    }
+  }, [actions, visibleStories]);
+
 
   // Load summary function with stable dependencies to prevent infinite loops
   const loadSummaryRef = useRef<(story: HackerNewsItem) => Promise<void>>(async () => {});
@@ -176,6 +185,7 @@ export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMod
               onToggleComments={toggleComments}
               onHideArticle={hideArticle}
               onShowArticle={showArticle}
+              onRetrySummary={retrySummary}
               isHidden={isArticleHidden(story.id)}
               showingHidden={showHiddenArticles}
             />

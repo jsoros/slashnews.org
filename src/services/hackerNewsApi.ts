@@ -31,6 +31,8 @@ class HackerNewsApi {
   private readonly MAX_CACHE_SIZE = 1000;
   private readonly CACHE_EXPIRY_MS = 3600000; // 1 hour
   private summaryCache = new Map<string, CacheEntry>();
+  private readonly DEBUG_MODE = import.meta.env.MODE === 'development' ||
+                                import.meta.env.VITE_DEBUG_SUMMARIES === 'true';
 
   private isValidUrl(url: string): boolean {
     try {
@@ -64,36 +66,50 @@ class HackerNewsApi {
 
   private async fetchHtmlContent(url: string): Promise<string | null> {
     const proxies = [
-      // Primary: allorigins.win with raw CORS support
+      // Primary: corsproxy.io - reliable CORS proxy service
       {
-        url: `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
-        extractContent: (response: { data: string }) => response.data
+        url: `https://corsproxy.io/?${encodeURIComponent(url)}`,
+        extractContent: (response: { data: string }) => response.data,
+        name: 'corsproxy.io'
       },
-      // Fallback 1: allorigins.win standard JSON response
+      // Fallback 1: cors-anywhere alternative
+      {
+        url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+        extractContent: (response: { data: string }) => response.data,
+        name: 'codetabs.com'
+      },
+      // Fallback 2: thingproxy
+      {
+        url: `https://thingproxy.freeboard.io/fetch/${encodeURIComponent(url)}`,
+        extractContent: (response: { data: string }) => response.data,
+        name: 'thingproxy'
+      },
+      // Fallback 3: allorigins.win (keeping as last resort)
       {
         url: `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-        extractContent: (response: { data: { contents: string } }) => response.data.contents
+        extractContent: (response: { data: { contents: string } }) => response.data.contents,
+        name: 'allorigins.win'
       },
-      // Fallback 2: anyorigin.com
+      // Fallback 4: cors.sh
       {
-        url: `https://anyorigin.com/get?url=${encodeURIComponent(url)}&callback=`,
-        extractContent: (response: { data: { contents: string } }) => response.data.contents
-      },
-      // Fallback 3: whateverorigin.org
-      {
-        url: `https://whateverorigin.org/get?url=${encodeURIComponent(url)}&callback=`,
-        extractContent: (response: { data: { contents: string } }) => response.data.contents
+        url: `https://cors.sh/${url}`,
+        extractContent: (response: { data: string }) => response.data,
+        name: 'cors.sh'
       }
     ];
 
     for (let i = 0; i < proxies.length; i++) {
       try {
         const proxy = proxies[i];
-        
+
+        if (this.DEBUG_MODE) {
+          console.log(`[Summary Debug] Trying proxy ${proxy.name} (${i + 1}/${proxies.length}) for ${url}`);
+        }
+
         const html = await circuitBreakerRegistry.executeWithCircuitBreaker(
-          `proxy-service-${i}`,
+          `proxy-service-${proxy.name}`,
           async () => {
-            const response = await axios.get(proxy.url, { 
+            const response = await axios.get(proxy.url, {
               timeout: 8000, // Longer timeout with circuit breaker protection
               headers: {
                 'User-Agent': 'Mozilla/5.0 (compatible; NewsAggregator/1.0)'
@@ -103,14 +119,23 @@ class HackerNewsApi {
           },
           { maxRetries: 1, baseDelayMs: 1000 }
         );
-        
+
         if (html && html.length > 100) {
+          if (this.DEBUG_MODE) {
+            console.log(`[Summary Debug] ✅ Success with ${proxy.name}, content length: ${html.length}`);
+          }
           return html;
+        } else if (this.DEBUG_MODE) {
+          console.warn(`[Summary Debug] ⚠️ ${proxy.name} returned insufficient content: ${html?.length || 0} chars`);
         }
       } catch (error) {
         // Log which proxy failed, try next one
         const message = error instanceof Error ? error.message : String(error);
-        console.warn(`Proxy ${i + 1} failed for ${url}:`, message);
+        if (this.DEBUG_MODE) {
+          console.error(`[Summary Debug] ❌ Proxy ${proxies[i].name} (${i + 1}/${proxies.length}) failed for ${url}:`, message);
+        } else {
+          console.warn(`Proxy ${proxies[i].name} (${i + 1}/${proxies.length}) failed for ${url}:`, message);
+        }
         continue;
       }
     }
