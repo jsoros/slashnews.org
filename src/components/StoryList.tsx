@@ -1,5 +1,6 @@
 import React, { useEffect, useCallback, useRef, useMemo } from 'react';
 import type { HackerNewsItem } from '../services/hackerNewsApi';
+import type { ViewMode, SortMode } from '../types/ui';
 import { useStoryData } from '../hooks/useStoryData';
 import { useStoryListState } from '../hooks/useStoryListState';
 import { useHiddenArticles } from '../hooks/useHiddenArticles';
@@ -7,15 +8,14 @@ import { StoryCard } from './StoryCard';
 import { StoryErrorBoundary } from './ErrorBoundary';
 import { hackerNewsApi } from '../services/hackerNewsApi';
 
-type ViewMode = 'title' | 'compact' | 'full';
-
 interface StoryListProps {
   category?: string;
   viewMode: ViewMode;
+  sortMode: SortMode;
   showHiddenArticles?: boolean;
 }
 
-export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMode, showHiddenArticles = false }) => {
+export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMode, sortMode, showHiddenArticles = false }) => {
   const {
     stories,
     loading,
@@ -37,16 +37,26 @@ export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMod
   // Use state management for expanded story instead of local state
   const expandedStory = state.expandedStory;
 
-  // Filter articles based on hidden state and toggle
+  // Filter and sort articles based on hidden state, toggle, and sort mode
   const visibleStories = useMemo(() => {
-    if (showHiddenArticles) {
-      // Show all stories when toggle is on
-      return stories;
-    } else {
-      // Filter out hidden articles when toggle is off
-      return stories.filter(story => !isArticleHidden(story.id));
+    let filteredStories = stories;
+
+    // Filter by hidden state
+    if (!showHiddenArticles) {
+      filteredStories = stories.filter(story => !isArticleHidden(story.id));
     }
-  }, [stories, isArticleHidden, showHiddenArticles]);
+
+    // Apply sorting
+    if (sortMode === 'comments') {
+      return [...filteredStories].sort((a, b) => {
+        const aComments = a.descendants || 0;
+        const bComments = b.descendants || 0;
+        return bComments - aComments; // Sort by comment count descending
+      });
+    }
+
+    return filteredStories; // Default order (as received from API)
+  }, [stories, isArticleHidden, showHiddenArticles, sortMode]);
 
 
   useEffect(() => {
@@ -213,5 +223,6 @@ export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMod
 }, (prevProps, nextProps) => {
   return prevProps.category === nextProps.category &&
          prevProps.viewMode === nextProps.viewMode &&
+         prevProps.sortMode === nextProps.sortMode &&
          prevProps.showHiddenArticles === nextProps.showHiddenArticles;
 });

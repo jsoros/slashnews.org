@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-
-type ViewMode = 'title' | 'compact' | 'full';
+import type { ViewMode, SortMode } from '../types/ui';
 
 interface HeaderProps {
   currentCategory: string;
   onCategoryChange: (category: string) => void;
   viewMode: ViewMode;
   onViewModeChange: (mode: ViewMode) => void;
+  sortMode: SortMode;
+  onSortModeChange: (mode: SortMode) => void;
   showAbout: boolean;
   onShowAbout: () => void;
   showHiddenArticles: boolean;
@@ -14,7 +15,7 @@ interface HeaderProps {
   onClearHiddenArticles: () => void;
 }
 
-export const Header = React.memo<HeaderProps>(({ currentCategory, onCategoryChange, viewMode, onViewModeChange, showAbout, onShowAbout, showHiddenArticles, onToggleHiddenArticles, onClearHiddenArticles }) => {
+export const Header = React.memo<HeaderProps>(({ currentCategory, onCategoryChange, viewMode, onViewModeChange, sortMode, onSortModeChange, showAbout, onShowAbout, showHiddenArticles, onToggleHiddenArticles, onClearHiddenArticles }) => {
   const [showViewModeDropdown, setShowViewModeDropdown] = useState(false);
   const categories = [
     { id: 'top', name: 'Top Stories' },
@@ -160,6 +161,32 @@ export const Header = React.memo<HeaderProps>(({ currentCategory, onCategoryChan
                 >
                   <span aria-hidden="true">🗑️</span> Clear All Hidden Articles
                 </button>
+
+                <div className="dropdown-separator" />
+
+                <button
+                  className={`dropdown-item ${sortMode === 'default' ? 'active' : ''}`}
+                  role="menuitem"
+                  aria-checked={sortMode === 'default'}
+                  onClick={() => {
+                    onSortModeChange('default');
+                    setShowViewModeDropdown(false);
+                  }}
+                >
+                  <span aria-hidden="true">📅</span> Default Order
+                </button>
+
+                <button
+                  className={`dropdown-item ${sortMode === 'comments' ? 'active' : ''}`}
+                  role="menuitem"
+                  aria-checked={sortMode === 'comments'}
+                  onClick={() => {
+                    onSortModeChange('comments');
+                    setShowViewModeDropdown(false);
+                  }}
+                >
+                  <span aria-hidden="true">💬</span> Sort by Comments
+                </button>
               </div>
             )}
           </div>
@@ -170,6 +197,7 @@ export const Header = React.memo<HeaderProps>(({ currentCategory, onCategoryChan
 }, (prevProps, nextProps) => {
   return prevProps.currentCategory === nextProps.currentCategory &&
          prevProps.viewMode === nextProps.viewMode &&
+         prevProps.sortMode === nextProps.sortMode &&
          prevProps.showAbout === nextProps.showAbout &&
          prevProps.showHiddenArticles === nextProps.showHiddenArticles;
 });

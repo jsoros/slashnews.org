@@ -4,15 +4,18 @@ import App from '../App';
 
 // Mock child components to focus on App integration logic
 vi.mock('../components/Header', () => ({
-  Header: ({ currentCategory, onCategoryChange, viewMode, onViewModeChange }: {
+  Header: ({ currentCategory, onCategoryChange, viewMode, onViewModeChange, sortMode, onSortModeChange }: {
     currentCategory: string;
     onCategoryChange: (category: string) => void;
     viewMode: string;
     onViewModeChange: (mode: string) => void;
+    sortMode: string;
+    onSortModeChange: (mode: string) => void;
   }) => (
     <div data-testid="header">
       <span data-testid="current-category">{currentCategory}</span>
       <span data-testid="current-view-mode">{viewMode}</span>
+      <span data-testid="current-sort-mode">{sortMode}</span>
       <button
         data-testid="category-button"
         onClick={() => onCategoryChange('new')}
@@ -25,15 +28,22 @@ vi.mock('../components/Header', () => ({
       >
         Change View Mode
       </button>
+      <button
+        data-testid="sort-mode-button"
+        onClick={() => onSortModeChange('comments')}
+      >
+        Change Sort Mode
+      </button>
     </div>
   ),
 }));
 
 vi.mock('../components/StoryList', () => ({
-  StoryList: ({ category, viewMode }: { category: string; viewMode: string }) => (
+  StoryList: ({ category, viewMode, sortMode }: { category: string; viewMode: string; sortMode: string }) => (
     <div data-testid="story-list">
       <span data-testid="story-list-category">{category}</span>
       <span data-testid="story-list-view-mode">{viewMode}</span>
+      <span data-testid="story-list-sort-mode">{sortMode}</span>
     </div>
   ),
 }));
@@ -64,13 +74,15 @@ describe('App Component', () => {
       expect(mainContent).toContainElement(screen.getByTestId('story-list'));
     });
 
-    it('initializes with default category and view mode', () => {
+    it('initializes with default category, view mode, and sort mode', () => {
       render(<App />);
 
       expect(screen.getByTestId('current-category')).toHaveTextContent('top');
       expect(screen.getByTestId('current-view-mode')).toHaveTextContent('full');
+      expect(screen.getByTestId('current-sort-mode')).toHaveTextContent('default');
       expect(screen.getByTestId('story-list-category')).toHaveTextContent('top');
       expect(screen.getByTestId('story-list-view-mode')).toHaveTextContent('full');
+      expect(screen.getByTestId('story-list-sort-mode')).toHaveTextContent('default');
     });
   });
 
@@ -152,31 +164,80 @@ describe('App Component', () => {
     });
   });
 
+  describe('Sort Mode Management', () => {
+    it('updates sort mode when Header calls onSortModeChange', () => {
+      render(<App />);
+
+      // Initial state
+      expect(screen.getByTestId('current-sort-mode')).toHaveTextContent('default');
+      expect(screen.getByTestId('story-list-sort-mode')).toHaveTextContent('default');
+
+      // Change sort mode
+      fireEvent.click(screen.getByTestId('sort-mode-button'));
+
+      // State should be updated
+      expect(screen.getByTestId('current-sort-mode')).toHaveTextContent('comments');
+      expect(screen.getByTestId('story-list-sort-mode')).toHaveTextContent('comments');
+    });
+
+    it('passes sort mode changes to both Header and StoryList', () => {
+      render(<App />);
+
+      fireEvent.click(screen.getByTestId('sort-mode-button'));
+
+      // Both components should receive the new sort mode
+      expect(screen.getByTestId('current-sort-mode')).toHaveTextContent('comments');
+      expect(screen.getByTestId('story-list-sort-mode')).toHaveTextContent('comments');
+    });
+
+    it('maintains sort mode state across re-renders', () => {
+      const { rerender } = render(<App />);
+
+      fireEvent.click(screen.getByTestId('sort-mode-button'));
+      expect(screen.getByTestId('current-sort-mode')).toHaveTextContent('comments');
+
+      rerender(<App />);
+
+      // Sort mode should persist
+      expect(screen.getByTestId('current-sort-mode')).toHaveTextContent('comments');
+    });
+
+    it('initializes with default sort mode', () => {
+      render(<App />);
+
+      expect(screen.getByTestId('current-sort-mode')).toHaveTextContent('default');
+      expect(screen.getByTestId('story-list-sort-mode')).toHaveTextContent('default');
+    });
+  });
+
   describe('Component Integration', () => {
     it('passes all required props to Header', () => {
       render(<App />);
-      
+
       const header = screen.getByTestId('header');
       expect(header).toBeInTheDocument();
-      
+
       // Check that header receives and displays current state
       expect(screen.getByTestId('current-category')).toHaveTextContent('top');
       expect(screen.getByTestId('current-view-mode')).toHaveTextContent('full');
-      
+      expect(screen.getByTestId('current-sort-mode')).toHaveTextContent('default');
+
       // Check that callbacks work
       expect(screen.getByTestId('category-button')).toBeInTheDocument();
       expect(screen.getByTestId('view-mode-button')).toBeInTheDocument();
+      expect(screen.getByTestId('sort-mode-button')).toBeInTheDocument();
     });
 
     it('passes all required props to StoryList', () => {
       render(<App />);
-      
+
       const storyList = screen.getByTestId('story-list');
       expect(storyList).toBeInTheDocument();
-      
+
       // Check that story list receives current state
       expect(screen.getByTestId('story-list-category')).toHaveTextContent('top');
       expect(screen.getByTestId('story-list-view-mode')).toHaveTextContent('full');
+      expect(screen.getByTestId('story-list-sort-mode')).toHaveTextContent('default');
     });
 
     it('renders Footer component', () => {
@@ -231,18 +292,36 @@ describe('App Component', () => {
       expect(screen.getByTestId('story-list-view-mode')).toHaveTextContent('compact');
     });
 
+    it('synchronizes sort mode changes between Header and StoryList', () => {
+      render(<App />);
+
+      // Initially both components should have the same sort mode
+      expect(screen.getByTestId('current-sort-mode')).toHaveTextContent('default');
+      expect(screen.getByTestId('story-list-sort-mode')).toHaveTextContent('default');
+
+      // Change sort mode via Header
+      fireEvent.click(screen.getByTestId('sort-mode-button'));
+
+      // Both components should update simultaneously
+      expect(screen.getByTestId('current-sort-mode')).toHaveTextContent('comments');
+      expect(screen.getByTestId('story-list-sort-mode')).toHaveTextContent('comments');
+    });
+
     it('handles multiple rapid state changes correctly', async () => {
       render(<App />);
 
-      // Rapid category changes
+      // Rapid state changes
       fireEvent.click(screen.getByTestId('category-button'));
       fireEvent.click(screen.getByTestId('view-mode-button'));
+      fireEvent.click(screen.getByTestId('sort-mode-button'));
 
       await waitFor(() => {
         expect(screen.getByTestId('current-category')).toHaveTextContent('new');
         expect(screen.getByTestId('story-list-category')).toHaveTextContent('new');
         expect(screen.getByTestId('current-view-mode')).toHaveTextContent('compact');
         expect(screen.getByTestId('story-list-view-mode')).toHaveTextContent('compact');
+        expect(screen.getByTestId('current-sort-mode')).toHaveTextContent('comments');
+        expect(screen.getByTestId('story-list-sort-mode')).toHaveTextContent('comments');
       });
     });
   });

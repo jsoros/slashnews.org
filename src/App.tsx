@@ -6,13 +6,13 @@ import { Footer } from './components/Footer';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { useSkipLinks, useAnnouncer } from './hooks/useKeyboardNavigation';
 import { useHiddenArticles } from './hooks/useHiddenArticles';
+import type { ViewMode, SortMode } from './types/ui';
 import './styles/toodles.css';
-
-type ViewMode = 'title' | 'compact' | 'full';
 
 function App() {
   const [currentCategory, setCurrentCategory] = useState('top');
   const [viewMode, setViewMode] = useState<ViewMode>('full');
+  const [sortMode, setSortMode] = useState<SortMode>('default');
   const [showAbout, setShowAbout] = useState(false);
   const [showHiddenArticles, setShowHiddenArticles] = useState(false);
   const { skipToContent, skipToNavigation } = useSkipLinks();
@@ -28,6 +28,11 @@ function App() {
   const handleViewModeChange = (mode: ViewMode) => {
     setViewMode(mode);
     announce(`View mode changed to ${mode}`);
+  };
+
+  const handleSortModeChange = (mode: SortMode) => {
+    setSortMode(mode);
+    announce(`Sort mode changed to ${mode === 'default' ? 'default order' : 'sorted by comments'}`);
   };
 
   const handleShowAbout = () => {
@@ -71,6 +76,8 @@ function App() {
           onCategoryChange={handleCategoryChange}
           viewMode={viewMode}
           onViewModeChange={handleViewModeChange}
+          sortMode={sortMode}
+          onSortModeChange={handleSortModeChange}
           showAbout={showAbout}
           onShowAbout={handleShowAbout}
           showHiddenArticles={showHiddenArticles}
@@ -87,6 +94,7 @@ function App() {
             <StoryList
               category={currentCategory}
               viewMode={viewMode}
+              sortMode={sortMode}
               showHiddenArticles={showHiddenArticles}
             />
           )}
