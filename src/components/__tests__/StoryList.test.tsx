@@ -15,7 +15,7 @@ describe.skip('StoryList', () => {
     mockedApi.getTopStories.mockImplementation(() => new Promise(() => {}));
     mockedApi.getItems.mockImplementation(() => new Promise(() => {}));
     
-    render(<StoryList viewMode="full" />);
+    render(<StoryList viewMode="full" sortMode="default" />);
     
     expect(screen.getByText('Loading stories...')).toBeInTheDocument();
   });
@@ -46,7 +46,7 @@ describe.skip('StoryList', () => {
     mockedApi.getTopStories.mockResolvedValue([1, 2]);
     mockedApi.getItems.mockResolvedValue(mockStories);
     
-    render(<StoryList viewMode="full" />);
+    render(<StoryList viewMode="full" sortMode="default" />);
     
     await waitFor(() => {
       expect(screen.getByText(/Test Story/)).toBeInTheDocument();
@@ -61,7 +61,7 @@ describe.skip('StoryList', () => {
   it('should display error message when loading fails', async () => {
     mockedApi.getTopStories.mockRejectedValue(new Error('API Error'));
     
-    render(<StoryList viewMode="full" />);
+    render(<StoryList viewMode="full" sortMode="default" />);
     
     await waitFor(() => {
       expect(screen.getByText('Failed to load stories. Please try again later.')).toBeInTheDocument();
@@ -79,7 +79,7 @@ describe.skip('StoryList', () => {
     mockedApi.getNewStories.mockResolvedValue(mockStoryIds);
     mockedApi.getItems.mockResolvedValue(mockStories);
     
-    render(<StoryList category="new" viewMode="full" />);
+    render(<StoryList category="new" viewMode="full" sortMode="default" />);
     
     await waitFor(() => {
       expect(mockedApi.getNewStories).toHaveBeenCalled();
@@ -96,7 +96,7 @@ describe.skip('StoryList', () => {
     mockedApi.getBestStories.mockResolvedValue(mockStoryIds);
     mockedApi.getItems.mockResolvedValue(mockStories);
     
-    render(<StoryList category="best" viewMode="full" />);
+    render(<StoryList category="best" viewMode="full" sortMode="default" />);
     
     await waitFor(() => {
       expect(mockedApi.getBestStories).toHaveBeenCalled();

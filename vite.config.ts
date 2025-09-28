@@ -44,5 +44,27 @@ export default defineConfig({
     // Additional memory optimization settings
     logHeapUsage: true, // Enable heap usage logging for debugging
     allowOnly: false,
+    // Coverage configuration
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html', 'lcov'],
+      reportsDirectory: './coverage',
+      exclude: [
+        'node_modules/**',
+        'src/test/**',
+        '**/*.test.{ts,tsx}',
+        '**/*.config.{ts,js}',
+        'dist/**',
+        'coverage/**'
+      ],
+      thresholds: {
+        global: {
+          branches: 70,
+          functions: 70,
+          lines: 70,
+          statements: 70
+        }
+      }
+    }
   },
 })
