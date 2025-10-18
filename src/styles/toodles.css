@@ -486,6 +486,7 @@ body {
 /* Story Wrapper */
 .story-wrapper {
   margin-bottom: 16px;
+  background-color: white;
 }
 
 /* Title View Styles */
@@ -580,6 +581,18 @@ body {
 }
 
 /* Full View - Story Title - Attached to Card */
+.story-card-wrapper {
+  display: block;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid #e1e8ed;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1), 0 1px 1px rgba(0,0,0,0.2);
+}
+
+.story-wrapper:hover .story-card-wrapper {
+  box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+}
+
 .view-full .story-title {
   background: linear-gradient(135deg, #006666 0%, #008888 100%);
   color: white;
@@ -588,9 +601,8 @@ body {
   margin: 0;
   padding: 6px 12px;
   line-height: 1.2;
-  border-radius: 6px 6px 0 0;
-  border: 1px solid #004444;
-  border-bottom: none;
+  border: none;
+  border-radius: 0;
 }
 
 .view-full .story-title a {
@@ -606,16 +618,15 @@ body {
 /* Story Card */
 .story-card {
   background-color: white;
-  border: 1px solid #e1e8ed;
+  border: none;
   border-radius: 0;
-  border-top: none;
   padding: 12px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1), 0 1px 1px rgba(0,0,0,0.2);
+  box-shadow: none;
   transition: box-shadow 0.2s ease;
 }
 
 .story-wrapper:hover .story-card {
-  box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+  box-shadow: none;
 }
 
 .story-wrapper:hover .story-title {
