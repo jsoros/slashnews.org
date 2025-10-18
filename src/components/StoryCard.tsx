@@ -177,11 +177,11 @@ export const StoryCard = React.memo<StoryCardProps>(({
             </div>
           )}
 
-          {/* Comments for compact view */}
+          {/* Comments for compact view - Only mount when expanded */}
           {expandedStory === story.id && (
             <div className="compact-comments-section">
               <CommentsErrorBoundary>
-                <Comments storyId={story.id} />
+                <Comments storyId={story.id} key={story.id} />
               </CommentsErrorBoundary>
             </div>
           )}
@@ -333,11 +333,11 @@ export const StoryCard = React.memo<StoryCardProps>(({
               </div>
             </div>
 
-            {/* Comments for Full View - Inside Card */}
+            {/* Comments for Full View - Inside Card - Only mount when expanded */}
             {expandedStory === story.id && (
               <div className="full-comments-section">
                 <CommentsErrorBoundary>
-                  <Comments storyId={story.id} />
+                  <Comments storyId={story.id} key={story.id} />
                 </CommentsErrorBoundary>
               </div>
             )}
@@ -353,5 +353,7 @@ export const StoryCard = React.memo<StoryCardProps>(({
          prevProps.summary === nextProps.summary &&
          prevProps.loadingSummary === nextProps.loadingSummary &&
          prevProps.summaryFailed === nextProps.summaryFailed &&
-         prevProps.onToggleComments === nextProps.onToggleComments;
+         prevProps.isHidden === nextProps.isHidden &&
+         prevProps.showingHidden === nextProps.showingHidden;
+  // Note: Callback functions are compared by reference but wrapped in useCallback in parent
 });

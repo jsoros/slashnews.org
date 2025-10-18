@@ -12,7 +12,7 @@ vi.mock('axios', () => ({
 
 // Mock performance utilities
 vi.mock('../utils/performance', () => ({
-  measureAsync: vi.fn(async (_name: string, operation: () => Promise<any>) => {
+  measureAsync: vi.fn(async (_name: string, operation: () => Promise<unknown>) => {
     return await operation();
   }),
   performanceMonitor: {
@@ -24,7 +24,7 @@ vi.mock('../utils/performance', () => ({
 // Mock circuit breaker
 vi.mock('../utils/circuitBreaker', () => ({
   circuitBreakerRegistry: {
-    executeWithCircuitBreaker: vi.fn(async (_name: string, operation: () => Promise<any>) => {
+    executeWithCircuitBreaker: vi.fn(async (_name: string, operation: () => Promise<unknown>) => {
       return await operation();
     })
   }

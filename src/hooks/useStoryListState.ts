@@ -79,9 +79,10 @@ function storyListReducer(state: StoryListState, action: StoryListAction): Story
     }
 
     case 'TOGGLE_STORY_EXPANSION': {
+      const newExpandedStory = state.expandedStory === action.storyId ? null : action.storyId;
       return {
         ...state,
-        expandedStory: state.expandedStory === action.storyId ? null : action.storyId,
+        expandedStory: newExpandedStory,
       };
     }
 

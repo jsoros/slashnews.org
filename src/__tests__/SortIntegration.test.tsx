@@ -68,12 +68,12 @@ vi.mock('../hooks/useKeyboardNavigation', () => ({
 // Mock components to focus on integration logic
 vi.mock('../components/StoryCard', () => ({
   StoryCard: ({ story, onToggleComments, onHideArticle, onShowArticle }: any) => (
-    <div data-testid={`story-card-${story.id}`}>
-      <h3 data-testid={`story-title-${story.id}`}>{story.title}</h3>
-      <span data-testid={`story-comments-${story.id}`}>{story.descendants || 0} comments</span>
-      <button onClick={() => onToggleComments(story.id)}>Toggle Comments</button>
-      <button onClick={() => onHideArticle(story.id)}>Hide</button>
-      <button onClick={() => onShowArticle(story.id)}>Show</button>
+    <div data-testid={`story-card-${(story as any).id}`}>
+      <h3 data-testid={`story-title-${(story as any).id}`}>{(story as any).title}</h3>
+      <span data-testid={`story-comments-${(story as any).id}`}>{(story as any).descendants || 0} comments</span>
+      <button onClick={() => (onToggleComments as any)((story as any).id)}>Toggle Comments</button>
+      <button onClick={() => (onHideArticle as any)((story as any).id)}>Hide</button>
+      <button onClick={() => (onShowArticle as any)((story as any).id)}>Show</button>
     </div>
   )
 }));
