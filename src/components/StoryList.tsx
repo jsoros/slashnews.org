@@ -30,12 +30,20 @@ export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMod
   const { hideArticle, showArticle, isArticleHidden } = useHiddenArticles();
 
   // Restore complex state management for summary loading
-  const { state, actions, computed } = useStoryListState();
+  const { state, actions } = useStoryListState();
   const observerRef = useRef<IntersectionObserver | null>(null);
   const observedElements = useRef<Map<number, Element>>(new Map());
 
   // Use state management for expanded story instead of local state
   const expandedStory = state.expandedStory;
+
+  // Store state and actions in refs to avoid recreating callbacks
+  const stateRef = useRef(state);
+  const actionsRef = useRef(actions);
+
+  // Update refs on every render
+  stateRef.current = state;
+  actionsRef.current = actions;
 
   // Filter and sort articles based on hidden state, toggle, and sort mode
   const visibleStories = useMemo(() => {
@@ -75,8 +83,8 @@ export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMod
       });
     }
     elements.clear();
-    actions.clearAllState(); // Reset all state including expanded story on category change
-  }, [category, actions]);
+    actionsRef.current.clearAllState(); // Reset all state including expanded story on category change
+  }, [category]); // Don't include actions - it recreates on every state change
 
   // TEMPORARILY DISABLED: Intersection observer causing maximum update depth errors
   // Setup intersection observer to track visible stories
@@ -88,81 +96,96 @@ export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMod
   // }, [actions]);
 
   const toggleComments = useCallback((storyId: number) => {
-    actions.toggleStoryExpansion(storyId);
-  }, [actions]);
+    actionsRef.current.toggleStoryExpansion(storyId);
+  }, []); // No dependencies - use ref
 
-  const retrySummary = useCallback((storyId: number) => {
-    // Reset the failed state and retry loading
-    actions.startSummaryLoading(storyId);
-    const story = visibleStories.find(s => s.id === storyId);
-    if (story) {
-      loadSummaryRef.current?.(story);
-    }
-  }, [actions, visibleStories]);
-
-
-  // Load summary function with stable dependencies to prevent infinite loops
-  const loadSummaryRef = useRef<(story: HackerNewsItem) => Promise<void>>(async () => {});
-
-  loadSummaryRef.current = async (story: HackerNewsItem) => {
+  // Load summary function - stable callback using refs
+  const loadSummary = useCallback(async (story: HackerNewsItem) => {
     if (!story.url) {
       return;
     }
 
-    // Check if we should load this summary by accessing current state
-    if (state.summaries.has(story.id) ||
-        state.loadingSummaries.has(story.id) ||
-        state.failedSummaries.has(story.id)) {
+    // Check if we should load this summary using refs
+    const currentState = stateRef.current;
+    if (currentState.summaries.has(story.id) ||
+        currentState.loadingSummaries.has(story.id) ||
+        currentState.failedSummaries.has(story.id)) {
       return;
     }
 
-    actions.startSummaryLoading(story.id);
+    actionsRef.current.startSummaryLoading(story.id);
 
     try {
       const summary = await hackerNewsApi.getArticleSummary(story.url);
       if (summary) {
-        actions.setSummarySuccess(story.id, summary);
+        actionsRef.current.setSummarySuccess(story.id, summary);
       } else {
-        actions.setSummaryFailed(story.id);
+        actionsRef.current.setSummaryFailed(story.id);
       }
     } catch (error) {
       console.warn(`Failed to load summary for story ${story.id}:`, error);
-      actions.setSummaryFailed(story.id);
+      actionsRef.current.setSummaryFailed(story.id);
     }
-  };
-
-  const loadSummary = useCallback((story: HackerNewsItem) => {
-    loadSummaryRef.current?.(story);
   }, []);
 
-  // Load summaries for visible stories with debouncing to prevent infinite loops
+  const retrySummary = useCallback((storyId: number) => {
+    // Reset the failed state and retry loading
+    actionsRef.current.startSummaryLoading(storyId);
+    const story = visibleStories.find(s => s.id === storyId);
+    if (story) {
+      loadSummary(story);
+    }
+  }, [visibleStories, loadSummary]);
+
+  // Pre-load comments for the first few visible stories in the background
   useEffect(() => {
     if (loading || !visibleStories.length) {
       return;
     }
 
-    const loadSummariesForVisible = async () => {
-      // Get stories that need summaries loaded - limit to first 5 to prevent overload
-      const storiesToLoad = visibleStories
-        .slice(0, 5)
-        .filter(story => Boolean(story.url));
+    // Only pre-load comments for the first 3 stories with comment counts
+    const storiesToPreload = visibleStories
+      .slice(0, 3)
+      .filter(story => story.descendants && story.descendants > 0);
 
-      // Load summaries in parallel but with limited concurrency
-      for (const story of storiesToLoad) {
-        loadSummary(story);
-      }
-    };
+    if (storiesToPreload.length === 0) {
+      return;
+    }
 
-    // Debounce summary loading to prevent rapid firing
+    // Delay pre-loading to avoid impacting initial page load
     const timeoutId = setTimeout(async () => {
-      try {
-        await loadSummariesForVisible();
-      } catch (error) {
-        console.error('Error in loadSummariesForVisible:', error);
+      const { preloadComments } = await import('./Comments');
+
+      // Build comment tree function (copied from Comments component)
+      const buildCommentTree = async (
+        commentIds: number[],
+        level: number
+      ): Promise<any[]> => {
+        const comments: any[] = [];
+        for (const id of commentIds) {
+          const comment = await hackerNewsApi.getItem(id);
+          if (comment && !comment.deleted && !comment.dead && comment.text) {
+            const commentWithLevel = { ...comment, level };
+            comments.push(commentWithLevel);
+            if (comment.kids && comment.kids.length > 0) {
+              const childComments = await buildCommentTree(comment.kids, level + 1);
+              comments.push(...childComments);
+            }
+          }
+        }
+        return comments;
+      };
+
+      // Pre-load comments for each story sequentially to avoid overload
+      for (const story of storiesToPreload) {
+        await preloadComments(story.id, buildCommentTree, hackerNewsApi);
+        // Small delay between stories to be nice to the API
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
-    }, 100);
+    }, 1000); // Wait 1 second after stories load before pre-loading
+
     return () => clearTimeout(timeoutId);
-  }, [visibleStories, loading, loadSummary]);
+  }, [visibleStories, loading]);
 
   // TEMPORARILY DISABLED: Story ref callback for intersection observer
   const storyRef = useCallback((node: HTMLDivElement | null, storyId: number) => {
@@ -189,9 +212,9 @@ export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMod
               story={story}
               viewMode={viewMode}
               expandedStory={expandedStory}
-              summary={computed.getSummary(story.id)}
-              loadingSummary={computed.isLoadingSummary(story.id)}
-              summaryFailed={computed.isSummaryFailed(story.id)}
+              summary={state.summaries.get(story.id)}
+              loadingSummary={state.loadingSummaries.has(story.id)}
+              summaryFailed={state.failedSummaries.has(story.id)}
               onToggleComments={toggleComments}
               onHideArticle={hideArticle}
               onShowArticle={showArticle}
