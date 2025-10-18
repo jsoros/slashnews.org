@@ -314,3 +314,26 @@ export const Comments = React.memo<CommentsProps>(({ storyId }) => {
 }, (prevProps, nextProps) => {
   return prevProps.storyId === nextProps.storyId;
 });
+
+export const preloadComments = async (
+  storyId: number,
+  buildCommentTree: (commentIds: number[], level: number) => Promise<CommentWithLevel[]>,
+  api: typeof hackerNewsApi
+) => {
+  if (commentsCache.has(storyId)) {
+    return;
+  }
+
+  try {
+    const story = await api.getItem(storyId);
+    if (!story || !story.kids) {
+      commentsCache.set(storyId, []);
+      return;
+    }
+
+    const commentsData = await buildCommentTree(story.kids, 0);
+    commentsCache.set(storyId, commentsData);
+  } catch (err) {
+    console.error('Error preloading comments:', err);
+  }
+};
