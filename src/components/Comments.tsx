@@ -1,49 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { formatDistanceToNow } from 'date-fns';
 import DOMPurify from 'dompurify';
-import { hackerNewsApi, type HackerNewsItem } from '../services/hackerNewsApi';
+import { hackerNewsApi } from '../services/hackerNewsApi';
+import type { CommentWithLevel } from './commentsUtils';
+import { commentsCache } from './commentsUtils';
 
 interface CommentsProps {
   storyId: number;
-}
-
-interface CommentWithLevel extends HackerNewsItem {
-  level: number;
-  hasUnloadedReplies?: boolean; // Track if kids exist but aren't loaded yet
-  replyCount?: number; // Number of unloaded replies
-}
-
-// Simple in-memory cache for comments
-const commentsCache = new Map<number, CommentWithLevel[]>();
-const loadingCommentsSet = new Set<number>(); // Track which stories are currently loading
-
-// Helper function to pre-load comments for a story
-export async function preloadComments(
-  storyId: number,
-  buildCommentTree: (commentIds: number[], level: number) => Promise<CommentWithLevel[]>,
-  hackerNewsApi: any
-): Promise<void> {
-  // Skip if already cached or currently loading
-  if (commentsCache.has(storyId) || loadingCommentsSet.has(storyId)) {
-    return;
-  }
-
-  loadingCommentsSet.add(storyId);
-
-  try {
-    const story = await hackerNewsApi.getItem(storyId);
-    if (!story || !story.kids) {
-      commentsCache.set(storyId, []);
-      return;
-    }
-
-    const commentsData = await buildCommentTree(story.kids, 0);
-    commentsCache.set(storyId, commentsData);
-  } catch (err) {
-    console.warn(`Failed to preload comments for story ${storyId}:`, err);
-  } finally {
-    loadingCommentsSet.delete(storyId);
-  }
 }
 
 export const Comments = React.memo<CommentsProps>(({ storyId }) => {
@@ -207,8 +170,8 @@ export const Comments = React.memo<CommentsProps>(({ storyId }) => {
         return;
       }
 
-      // Load only top-level comments (maxDepth=0)
-      const commentsData = await buildCommentTree(story.kids, 0, 0);
+      // Load all comments recursively
+      const commentsData = await buildCommentTree(story.kids, 0);
       setComments(commentsData);
       commentsCache.set(storyId, commentsData); // Cache the results
     } catch (err) {
@@ -289,7 +252,6 @@ export const Comments = React.memo<CommentsProps>(({ storyId }) => {
 
   return (
     <div className="comments-section">
-      <h4>Comments ({comments.length})</h4>
       {visibleComments.map((comment) => {
         const isCollapsed = collapsedThreads.has(comment.id);
         const hasChildren = comments.some((c, idx) => {

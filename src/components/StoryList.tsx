@@ -7,6 +7,7 @@ import { useHiddenArticles } from '../hooks/useHiddenArticles';
 import { StoryCard } from './StoryCard';
 import { StoryErrorBoundary } from './ErrorBoundary';
 import { hackerNewsApi } from '../services/hackerNewsApi';
+import type { CommentWithLevel } from './commentsUtils';
 
 interface StoryListProps {
   category?: string;
@@ -156,12 +157,11 @@ export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMod
     const timeoutId = setTimeout(async () => {
       const { preloadComments } = await import('./Comments');
 
-      // Build comment tree function (copied from Comments component)
       const buildCommentTree = async (
         commentIds: number[],
         level: number
-      ): Promise<any[]> => {
-        const comments: any[] = [];
+      ): Promise<CommentWithLevel[]> => {
+        const comments: CommentWithLevel[] = [];
         for (const id of commentIds) {
           const comment = await hackerNewsApi.getItem(id);
           if (comment && !comment.deleted && !comment.dead && comment.text) {

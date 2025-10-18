@@ -67,7 +67,7 @@ vi.mock('../hooks/useKeyboardNavigation', () => ({
 
 // Mock components to focus on integration logic
 vi.mock('../components/StoryCard', () => ({
-  StoryCard: ({ story, onToggleComments, onHideArticle, onShowArticle }: any) => (
+  StoryCard: ({ story, onToggleComments, onHideArticle, onShowArticle }: Record<string, unknown>) => (
     <div data-testid={`story-card-${story.id}`}>
       <h3 data-testid={`story-title-${story.id}`}>{story.title}</h3>
       <span data-testid={`story-comments-${story.id}`}>{story.descendants || 0} comments</span>
