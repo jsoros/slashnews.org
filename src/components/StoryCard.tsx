@@ -190,7 +190,7 @@ export const StoryCard = React.memo<StoryCardProps>(({
 
       {/* Full View - Full story card with header, content, and footer */}
       {viewMode === 'full' && (
-        <>
+        <div className="story-card-wrapper">
           <div className="full-header">
             <h2 className="story-title">
               {story.url ? (
@@ -342,7 +342,7 @@ export const StoryCard = React.memo<StoryCardProps>(({
               </div>
             )}
           </div>
-        </>
+        </div>
       )}
     </div>
   );
