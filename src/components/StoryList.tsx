@@ -155,7 +155,7 @@ export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMod
 
     // Delay pre-loading to avoid impacting initial page load
     const timeoutId = setTimeout(async () => {
-      const { preloadComments } = await import('./Comments');
+      const { preloadComments } = await import('./commentsPreload');
 
       const buildCommentTree = async (
         commentIds: number[],
