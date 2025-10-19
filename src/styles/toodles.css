@@ -491,26 +491,48 @@ body {
 
 /* Title View Styles */
 .title-view {
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  background: #ffffff;
+  border: 1px solid #d0d7de;
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.title-view:hover {
+  border-color: #8957e5;
+  box-shadow: 0 1px 3px rgba(137, 87, 229, 0.12);
+  background: #fafbfc;
 }
 
 .title-only {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 15px;
+  font-weight: 500;
   margin: 0;
-  padding: 6px 0;
-  line-height: 1.3;
-  color: #14171a;
+  padding: 0;
+  line-height: 1.5;
+  color: #24292f;
 }
 
 .title-only a {
-  color: #14171a;
+  color: #0969da;
   text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.title-only a:active {
+  color: #0969da;
+  background: transparent;
 }
 
 .title-only a:hover {
-  color: #1da1f2;
+  color: #0860ca;
   text-decoration: underline;
+}
+
+.title-only a:focus-visible {
+  outline: 2px solid #0969da;
+  outline-offset: 2px;
 }
 
 /* Compact View Styles */
