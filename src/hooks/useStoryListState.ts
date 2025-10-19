@@ -15,6 +15,7 @@ export type StoryListAction =
   | { type: 'SUMMARY_LOADING'; storyId: number }
   | { type: 'SUMMARY_SUCCESS'; storyId: number; summary: string }
   | { type: 'SUMMARY_FAILED'; storyId: number }
+  | { type: 'CLEAR_SUMMARY_FAILED'; storyId: number }
   | { type: 'TOGGLE_STORY_EXPANSION'; storyId: number }
   | { type: 'SET_VISIBLE_STORIES'; storyIds: number[] }
   | { type: 'ADD_VISIBLE_STORY'; storyId: number }
@@ -74,6 +75,16 @@ function storyListReducer(state: StoryListState, action: StoryListAction): Story
       return {
         ...state,
         loadingSummaries: newLoadingSummaries,
+        failedSummaries: newFailedSummaries,
+      };
+    }
+
+    case 'CLEAR_SUMMARY_FAILED': {
+      const newFailedSummaries = new Set(state.failedSummaries);
+      newFailedSummaries.delete(action.storyId);
+      
+      return {
+        ...state,
         failedSummaries: newFailedSummaries,
       };
     }
@@ -161,6 +172,10 @@ export function useStoryListState() {
 
     setSummaryFailed: useCallback((storyId: number) => {
       dispatch({ type: 'SUMMARY_FAILED', storyId });
+    }, []),
+
+    clearSummaryFailed: useCallback((storyId: number) => {
+      dispatch({ type: 'CLEAR_SUMMARY_FAILED', storyId });
     }, []),
 
     toggleStoryExpansion: useCallback((storyId: number) => {

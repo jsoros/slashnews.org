@@ -144,7 +144,10 @@ class HackerNewsApi {
   }
 
   async getArticleSummary(url: string): Promise<string | null> {
+    console.debug(`[Summary API] Starting getArticleSummary for: ${url}`);
+    
     if (!this.isValidUrl(url)) {
+      console.debug(`[Summary API] Invalid URL: ${url}`);
       return null;
     }
 
@@ -153,16 +156,21 @@ class HackerNewsApi {
     // Check cache first
     const cached = this.summaryCache.get(url);
     if (cached && Date.now() - cached.timestamp < this.CACHE_EXPIRY_MS) {
+      console.debug(`[Summary API] Cache hit for: ${url}`);
       return cached.data;
     }
 
     try {
+      console.debug(`[Summary API] Fetching HTML content for: ${url}`);
       const html = await measureAsync('HN-API-fetchHtmlContent', () => 
         this.fetchHtmlContent(url)
       );
       if (!html) {
+        console.debug(`[Summary API] No HTML content returned for: ${url}`);
         return null;
       }
+      
+      console.debug(`[Summary API] HTML fetched (${html.length} chars), extracting summary for: ${url}`);
       
       // Extract meta description or Open Graph description
       const descMatch = html.match(/<meta[^>]*name="description"[^>]*content="([^"]*)"[^>]*>/i);
@@ -172,8 +180,11 @@ class HackerNewsApi {
       
       // If no meta description found, return null instead of fallback
       if (!summary) {
+        console.debug(`[Summary API] No meta description found for: ${url}`);
         return null;
       }
+      
+      console.debug(`[Summary API] Found summary (${summary.length} chars) for: ${url}`);
       
       // Clean up HTML entities and limit length
       let cleanSummary = summary
@@ -191,11 +202,11 @@ class HackerNewsApi {
         data: cleanSummary,
         timestamp: Date.now()
       });
+      console.debug(`[Summary API] Successfully cached summary for: ${url}`);
       return cleanSummary;
       
     } catch (error) {
-      // Temporarily log errors to debug summary loading issues
-      console.warn(`Article summary failed for ${url}:`, error);
+      console.warn(`[Summary API] Failed to load summary for ${url}:`, error);
       return null;
     }
   }

@@ -87,55 +87,90 @@ export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMod
     actionsRef.current.clearAllState(); // Reset all state including expanded story on category change
   }, [category]); // Don't include actions - it recreates on every state change
 
-  // TEMPORARILY DISABLED: Intersection observer causing maximum update depth errors
-  // Setup intersection observer to track visible stories
-  // useEffect(() => {
-  //   // Intersection observer logic disabled temporarily
-  //   return () => {
-  //     // Cleanup
-  //   };
-  // }, [actions]);
-
-  const toggleComments = useCallback((storyId: number) => {
-    actionsRef.current.toggleStoryExpansion(storyId);
-  }, []); // No dependencies - use ref
-
   // Load summary function - stable callback using refs
   const loadSummary = useCallback(async (story: HackerNewsItem) => {
     if (!story.url) {
+      console.debug(`[Summary] Skipping story ${story.id}: no URL`);
       return;
     }
 
     // Check if we should load this summary using refs
     const currentState = stateRef.current;
-    if (currentState.summaries.has(story.id) ||
-        currentState.loadingSummaries.has(story.id) ||
-        currentState.failedSummaries.has(story.id)) {
+    if (currentState.summaries.has(story.id)) {
+      console.debug(`[Summary] Story ${story.id} already has summary`);
+      return;
+    }
+    if (currentState.loadingSummaries.has(story.id)) {
+      console.debug(`[Summary] Story ${story.id} already loading`);
+      return;
+    }
+    if (currentState.failedSummaries.has(story.id)) {
+      console.debug(`[Summary] Story ${story.id} previously failed, skipping`);
       return;
     }
 
+    console.debug(`[Summary] Starting load for story ${story.id}: ${story.url}`);
     actionsRef.current.startSummaryLoading(story.id);
 
     try {
       const summary = await hackerNewsApi.getArticleSummary(story.url);
       if (summary) {
+        console.debug(`[Summary] Success for story ${story.id}: ${summary.substring(0, 50)}...`);
         actionsRef.current.setSummarySuccess(story.id, summary);
       } else {
+        console.debug(`[Summary] No summary returned for story ${story.id}`);
         actionsRef.current.setSummaryFailed(story.id);
       }
     } catch (error) {
-      console.warn(`Failed to load summary for story ${story.id}:`, error);
+      console.warn(`[Summary] Failed to load summary for story ${story.id}:`, error);
       actionsRef.current.setSummaryFailed(story.id);
     }
   }, []);
 
+  // Setup intersection observer to load summaries when stories become visible
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            const storyId = parseInt(entry.target.getAttribute('data-story-id') || '', 10);
+            const story = visibleStories.find(s => s.id === storyId);
+            if (story) {
+              loadSummary(story);
+            }
+          }
+        });
+      },
+      { rootMargin: '100px' }
+    );
+
+    observerRef.current = observer;
+
+    // Observe all story elements
+    observedElements.current.forEach((element) => {
+      observer.observe(element);
+    });
+
+    return () => {
+      observer.disconnect();
+      observerRef.current = null;
+    };
+  }, [visibleStories, loadSummary]);
+
+  const toggleComments = useCallback((storyId: number) => {
+    actionsRef.current.toggleStoryExpansion(storyId);
+  }, []); // No dependencies - use ref
+
   const retrySummary = useCallback((storyId: number) => {
-    // Reset the failed state and retry loading
-    actionsRef.current.startSummaryLoading(storyId);
+    console.debug(`[Summary] Retry requested for story ${storyId}`);
     const story = visibleStories.find(s => s.id === storyId);
-    if (story) {
-      loadSummary(story);
+    if (!story) {
+      console.warn(`[Summary] Story ${storyId} not found for retry`);
+      return;
     }
+    // Clear failed state before retrying
+    actionsRef.current.clearSummaryFailed(storyId);
+    loadSummary(story);
   }, [visibleStories, loadSummary]);
 
   // Pre-load comments for the first few visible stories in the background
@@ -187,11 +222,18 @@ export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMod
     return () => clearTimeout(timeoutId);
   }, [visibleStories, loading]);
 
-  // TEMPORARILY DISABLED: Story ref callback for intersection observer
+  // Story ref callback for intersection observer
   const storyRef = useCallback((node: HTMLDivElement | null, storyId: number) => {
-    // Disabled - intersection observer temporarily removed
     if (node) {
       node.setAttribute('data-story-id', storyId.toString());
+      observedElements.current.set(storyId, node);
+      observerRef.current?.observe(node);
+    } else {
+      const element = observedElements.current.get(storyId);
+      if (element) {
+        observerRef.current?.unobserve(element);
+        observedElements.current.delete(storyId);
+      }
     }
   }, []);
 
