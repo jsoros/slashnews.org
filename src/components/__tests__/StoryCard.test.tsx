@@ -58,7 +58,7 @@ describe('StoryCard', () => {
   it('renders in compact view mode', () => {
     render(<StoryCard {...defaultProps} viewMode="compact" />);
     expect(screen.getByText('Test Story Title')).toBeInTheDocument();
-    expect(screen.getByText('100 pts')).toBeInTheDocument();
+    expect(screen.getByText('100 points')).toBeInTheDocument();
   });
 
   it('renders in full view mode', () => {
