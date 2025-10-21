@@ -36,6 +36,22 @@ jobs:
             echo "branch_name=${{ github.event.pull_request.head.ref }}" >> $GITHUB_OUTPUT
           fi
 
+      - name: Sanitize branch name to kebab-case
+        id: sanitize
+        run: |
+          # Convert branch name to kebab-case
+          BRANCH_NAME="${{ steps.branch.outputs.branch_name }}"
+          # Convert to lowercase
+          BRANCH_NAME=$(echo "$BRANCH_NAME" | tr '[:upper:]' '[:lower:]')
+          # Replace slashes, underscores, spaces, and other special chars with dashes
+          BRANCH_NAME=$(echo "$BRANCH_NAME" | sed 's/[\/_ ]/-/g' | sed 's/[^a-z0-9-]//g')
+          # Remove consecutive dashes
+          BRANCH_NAME=$(echo "$BRANCH_NAME" | sed 's/-\+/-/g')
+          # Trim dashes from start and end
+          BRANCH_NAME=$(echo "$BRANCH_NAME" | sed 's/^-//; s/-$//')
+          echo "branch_name=$BRANCH_NAME" >> $GITHUB_OUTPUT
+          echo "Sanitized branch name: $BRANCH_NAME (from ${{ steps.branch.outputs.branch_name }})"
+
       - name: Cleanup branch preview
         run: |
           # Configure git
@@ -47,15 +63,15 @@ jobs:
           cd gh-pages-deploy
 
           # Remove branch deployment if it exists
-          if [ -d "branches/${{ steps.branch.outputs.branch_name }}" ]; then
-            rm -rf "branches/${{ steps.branch.outputs.branch_name }}"
+          if [ -d "branches/${{ steps.sanitize.outputs.branch_name }}" ]; then
+            rm -rf "branches/${{ steps.sanitize.outputs.branch_name }}"
 
             # Commit and push
             git add .
-            git commit -m "Cleanup branch preview: ${{ steps.branch.outputs.branch_name }}"
+            git commit -m "Cleanup branch preview: ${{ steps.sanitize.outputs.branch_name }} (from ${{ steps.branch.outputs.branch_name }})"
             git push
 
-            echo "Cleaned up branch preview for: ${{ steps.branch.outputs.branch_name }}"
+            echo "Cleaned up branch preview for: ${{ steps.sanitize.outputs.branch_name }} (original: ${{ steps.branch.outputs.branch_name }})"
           else
-            echo "No branch preview found for: ${{ steps.branch.outputs.branch_name }}"
+            echo "No branch preview found for: ${{ steps.sanitize.outputs.branch_name }} (original: ${{ steps.branch.outputs.branch_name }})"
           fi
