@@ -58,8 +58,12 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Clone gh-pages branch
-          git clone --branch gh-pages "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages-deploy
+          # Clone gh-pages branch - skip if it doesn't exist
+          if ! git clone --branch gh-pages "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages-deploy 2>/dev/null; then
+            echo "gh-pages branch doesn't exist, nothing to clean up"
+            exit 0
+          fi
+
           cd gh-pages-deploy
 
           # Remove branch deployment if it exists

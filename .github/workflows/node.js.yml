@@ -107,9 +107,21 @@ jobs:
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Clone gh-pages branch
-          git clone --branch gh-pages "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages-deploy
-          cd gh-pages-deploy
+          # Clone gh-pages branch or create it if it doesn't exist
+          if git clone --branch gh-pages "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages-deploy 2>/dev/null; then
+            echo "Cloned existing gh-pages branch"
+            cd gh-pages-deploy
+          else
+            echo "gh-pages branch doesn't exist, creating new one"
+            git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages-deploy
+            cd gh-pages-deploy
+            git checkout --orphan gh-pages
+            git rm -rf .
+            echo "# GitHub Pages" > README.md
+            git add README.md
+            git commit -m "Initialize gh-pages branch"
+            git push -u origin gh-pages
+          fi
 
           # Create branches directory if it doesn't exist
           mkdir -p branches
