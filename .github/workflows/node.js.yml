@@ -1,18 +1,19 @@
-name: Bun CI
+name: deploy-branch-version
 
 on:
   push:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
+  workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
 concurrency:
-  group: "pages"
+  group: ${{ github.ref == 'refs/heads/main' && 'pages' || format('pages-{0}', github.ref) }}
   cancel-in-progress: false
 
 jobs:
@@ -46,7 +47,10 @@ jobs:
           bunx tsc --version
           echo ""
       - run: bun run lint
-      - run: bun run build
+      - name: Build with correct base path
+        env:
+          VITE_BASE_PATH: ${{ github.ref == 'refs/heads/main' && './' || format('/branches/{0}/', github.ref_name) }}
+        run: bun run build
       - name: Run tests with memory monitoring
         run: |
           echo "Available memory before tests:"
@@ -66,3 +70,65 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Deploy branch preview
+        if: github.event_name == 'push' && github.ref != 'refs/heads/main'
+        run: |
+          # Configure git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Clone gh-pages branch
+          git clone --branch gh-pages "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages-deploy
+          cd gh-pages-deploy
+
+          # Create branches directory if it doesn't exist
+          mkdir -p branches
+
+          # Remove old branch deployment if it exists
+          rm -rf "branches/${{ github.ref_name }}"
+
+          # Copy new build
+          mkdir -p "branches/${{ github.ref_name }}"
+          cp -r ../dist/* "branches/${{ github.ref_name }}/"
+
+          # Create/update index for branches (optional - lists all branch deployments)
+          cat > branches/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Branch Previews</title>
+            <style>
+              body { font-family: system-ui; max-width: 800px; margin: 50px auto; padding: 20px; }
+              h1 { color: #333; }
+              ul { list-style: none; padding: 0; }
+              li { margin: 10px 0; }
+              a { color: #0066cc; text-decoration: none; }
+              a:hover { text-decoration: underline; }
+            </style>
+          </head>
+          <body>
+            <h1>Branch Preview Deployments</h1>
+            <ul id="branches"></ul>
+            <script>
+              fetch('https://api.github.com/repos/${{ github.repository }}/branches')
+                .then(r => r.json())
+                .then(branches => {
+                  const list = document.getElementById('branches');
+                  branches
+                    .filter(b => b.name !== 'main' && b.name !== 'gh-pages')
+                    .forEach(b => {
+                      const li = document.createElement('li');
+                      li.innerHTML = '<a href="' + b.name + '/">' + b.name + '</a>';
+                      list.appendChild(li);
+                    });
+                });
+            </script>
+          </body>
+          </html>
+          EOF
+
+          # Commit and push
+          git add .
+          git commit -m "Deploy branch preview: ${{ github.ref_name }}" || echo "No changes to commit"
+          git push
