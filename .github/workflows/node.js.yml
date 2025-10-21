@@ -3,14 +3,13 @@ name: deploy-branch-version
 on:
   push:
     branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
   workflow_dispatch:
 
+# Default permissions - read only
 permissions:
-  contents: write
-  pages: write
-  id-token: write
+  contents: read
+
+# Separate permission blocks for each job to minimize exposure
 
 concurrency:
   group: ${{ github.ref == 'refs/heads/main' && 'pages' || format('pages-{0}', github.ref) }}
@@ -19,6 +18,11 @@ concurrency:
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
+    # Only grant elevated permissions to repository owner
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
     env:
       CI: true
       VITEST: true
@@ -26,6 +30,16 @@ jobs:
       matrix:
         bun-version: [latest]
     steps:
+      - name: Validate actor is repository owner
+        run: |
+          REPO_OWNER="${{ github.repository_owner }}"
+          ACTOR="${{ github.actor }}"
+          if [ "$ACTOR" != "$REPO_OWNER" ]; then
+            echo "ERROR: Only the repository owner ($REPO_OWNER) can trigger deployments."
+            echo "Current actor: $ACTOR"
+            exit 1
+          fi
+          echo "Actor validation passed: $ACTOR"
       - uses: actions/checkout@v4
       - name: Sanitize branch name to kebab-case
         id: sanitize

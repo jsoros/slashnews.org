@@ -5,14 +5,28 @@ on:
   pull_request:
     types: [closed]
 
+# Default permissions - read only
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   cleanup:
     runs-on: ubuntu-latest
+    # Only grant write permissions to repository owner
+    permissions:
+      contents: write
     if: github.event_name == 'delete' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
     steps:
+      - name: Validate actor is repository owner
+        run: |
+          REPO_OWNER="${{ github.repository_owner }}"
+          ACTOR="${{ github.actor }}"
+          if [ "$ACTOR" != "$REPO_OWNER" ]; then
+            echo "ERROR: Only the repository owner ($REPO_OWNER) can trigger cleanup operations."
+            echo "Current actor: $ACTOR"
+            exit 1
+          fi
+          echo "Actor validation passed: $ACTOR"
       - name: Determine branch name
         id: branch
         run: |
