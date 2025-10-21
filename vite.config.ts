@@ -5,7 +5,7 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: "./",
+  base: process.env.VITE_BASE_PATH || "./",
   cacheDir: 'node_modules/.vite', // Set cache directory at top level
   // @ts-expect-error - Vite config types don't include test property
   test: {

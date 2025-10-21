@@ -1,0 +1,47 @@
+name: Cleanup Branch Preview
+
+on:
+  delete:
+  pull_request:
+    types: [closed]
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'delete' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
+    steps:
+      - name: Determine branch name
+        id: branch
+        run: |
+          if [ "${{ github.event_name }}" == "delete" ]; then
+            echo "branch_name=${{ github.event.ref }}" >> $GITHUB_OUTPUT
+          else
+            echo "branch_name=${{ github.event.pull_request.head.ref }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Cleanup branch preview
+        run: |
+          # Configure git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Clone gh-pages branch
+          git clone --branch gh-pages "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages-deploy
+          cd gh-pages-deploy
+
+          # Remove branch deployment if it exists
+          if [ -d "branches/${{ steps.branch.outputs.branch_name }}" ]; then
+            rm -rf "branches/${{ steps.branch.outputs.branch_name }}"
+
+            # Commit and push
+            git add .
+            git commit -m "Cleanup branch preview: ${{ steps.branch.outputs.branch_name }}"
+            git push
+
+            echo "Cleaned up branch preview for: ${{ steps.branch.outputs.branch_name }}"
+          else
+            echo "No branch preview found for: ${{ steps.branch.outputs.branch_name }}"
+          fi
