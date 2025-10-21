@@ -95,87 +95,78 @@ export const StoryCard = React.memo<StoryCardProps>(({
         </div>
       )}
 
-      {/* Compact View - Title + dense metadata underneath */}
+      {/* Compact View - Hacker News Style: Two-line format */}
       {viewMode === 'compact' && (
         <div className="compact-view">
-          <div className="compact-header">
-            <h3 className="compact-title">
+          {/* First line: Title and URL */}
+          <div className="hn-title-line">
+            <h3 className="hn-title">
               {story.url ? (
-                <a href={story.url} target="_blank" rel="noopener noreferrer">
-                  {story.title}
-                </a>
+                <>
+                  <a href={story.url} target="_blank" rel="noopener noreferrer">
+                    {story.title}
+                  </a>
+                  {' '}
+                  <span className="hn-url">
+                    ({(() => {
+                      try {
+                        return new URL(story.url).hostname.replace('www.', '');
+                      } catch {
+                        return story.url;
+                      }
+                    })()})
+                  </span>
+                </>
               ) : (
                 <span>{story.title}</span>
               )}
             </h3>
+          </div>
+
+          {/* Second line: Metadata in HN style */}
+          <div className="hn-meta-line">
+            {story.score && (
+              <span className="hn-points">{story.score} point{story.score !== 1 ? 's' : ''}</span>
+            )}
+            <span className="hn-by"> by </span>
+            <span className="hn-author">{story.by}</span>
+            <span className="hn-separator"> | </span>
+            <span className="hn-time">{formatTimeAgo(story.time)}</span>
+            <span className="hn-separator"> | </span>
             {isHidden && showingHidden ? (
               <button
-                className="restore-article-btn"
+                className="hn-action-link"
                 onClick={() => onShowArticle(story.id)}
                 aria-label={`Restore article: ${story.title}`}
-                title="Restore this article"
               >
-                ↺
+                restore
               </button>
             ) : (
               <button
-                className="remove-article-btn"
+                className="hn-action-link"
                 onClick={() => onHideArticle(story.id)}
                 aria-label={`Hide article: ${story.title}`}
-                title="Hide this article"
               >
-                ×
+                hide
               </button>
             )}
+            <span className="hn-separator"> | </span>
+            <a
+              href={`https://news.ycombinator.com/item?id=${story.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hn-action-link"
+            >
+              past
+            </a>
+            <span className="hn-separator"> | </span>
+            <button
+              className="hn-action-link"
+              onClick={() => onToggleComments(story.id)}
+            >
+              {story.descendants || 0} comment{story.descendants !== 1 ? 's' : ''}
+            </button>
           </div>
-          <div className="compact-meta">
-            <span className="compact-author">{story.by}</span>
-            <span className="compact-separator">•</span>
-            <span className="compact-time">{formatTimeAgo(story.time)}</span>
-            {story.score && (
-              <>
-                <span className="compact-separator">•</span>
-                <span className="compact-points">{story.score} pts</span>
-              </>
-            )}
-            {story.descendants && (
-              <>
-                <span className="compact-separator">•</span>
-                <button 
-                  className="compact-comments-btn"
-                  onClick={() => onToggleComments(story.id)}
-                >
-                  {story.descendants} comments
-                </button>
-              </>
-            )}
-          </div>
-
-          {/* Summary for compact view */}
-          {!story.text && story.url && (
-            <div className="story-summary">
-              {summary ? (
-                <div className="auto-summary">{summary}</div>
-              ) : loadingSummary ? (
-                <div className="loading-summary">
-                  <em>Loading summary...</em>
-                </div>
-              ) : summaryFailed ? (
-                <div className="failed-summary">
-                  <em>Summary unavailable</em>
-                  {onRetrySummary && (
-                    <button
-                      className="retry-summary-btn"
-                      onClick={() => onRetrySummary(story.id)}
-                      title="Retry loading summary"
-                    >
-                      ↻ Retry
-                    </button>
-                  )}
-                </div>
-              ) : null}
-            </div>
-          )}
 
           {/* Comments for compact view - Only mount when expanded */}
           {expandedStory === story.id && (
