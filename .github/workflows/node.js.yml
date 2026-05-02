@@ -99,6 +99,78 @@ jobs:
         if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Deploy branch preview
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref != 'refs/heads/main'
+        run: |
+          # Configure git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Clone gh-pages branch
+          git clone --branch gh-pages "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages-deploy
+          cd gh-pages-deploy
+
+          # Create branches directory if it doesn't exist
+          mkdir -p branches
+
+          # Remove old branch deployment if it exists
+          rm -rf "branches/${{ steps.sanitize.outputs.branch_name }}"
+
+          # Copy new build
+          mkdir -p "branches/${{ steps.sanitize.outputs.branch_name }}"
+          cp -r ../dist/* "branches/${{ steps.sanitize.outputs.branch_name }}/"
+
+          # Create/update index for branches (optional - lists all branch deployments)
+          cat > branches/index.html << 'EOF'
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Branch Previews</title>
+            <style>
+              body { font-family: system-ui; max-width: 800px; margin: 50px auto; padding: 20px; }
+              h1 { color: #333; }
+              ul { list-style: none; padding: 0; }
+              li { margin: 10px 0; }
+              a { color: #0066cc; text-decoration: none; }
+              a:hover { text-decoration: underline; }
+            </style>
+          </head>
+          <body>
+            <h1>Branch Preview Deployments</h1>
+            <ul id="branches"></ul>
+            <script>
+              // Sanitize branch name to kebab-case (matches the workflow logic)
+              function sanitizeBranchName(name) {
+                return name
+                  .toLowerCase()
+                  .replace(/[\/_ ]/g, '-')
+                  .replace(/[^a-z0-9-]/g, '')
+                  .replace(/-+/g, '-')
+                  .replace(/^-|-$/g, '');
+              }
+
+              fetch('https://api.github.com/repos/${{ github.repository }}/branches')
+                .then(r => r.json())
+                .then(branches => {
+                  const list = document.getElementById('branches');
+                  branches
+                    .filter(b => b.name !== 'main' && b.name !== 'gh-pages')
+                    .forEach(b => {
+                      const sanitized = sanitizeBranchName(b.name);
+                      const li = document.createElement('li');
+                      li.innerHTML = '<a href="' + sanitized + '/">' + b.name + '</a> → <code>' + sanitized + '</code>';
+                      list.appendChild(li);
+                    });
+                });
+            </script>
+          </body>
+          </html>
+          EOF
+
+          # Commit and push
+          git add .
+          git commit -m "Deploy branch preview: ${{ steps.sanitize.outputs.branch_name }} (from ${{ github.ref_name }})" || echo "No changes to commit"
+          git push
 
       - name: Deploy branch preview
         if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref != 'refs/heads/main'

@@ -535,16 +535,91 @@ body {
   outline-offset: 2px;
 }
 
-/* Compact View Styles */
+/* Compact View Styles - Hacker News Style */
 .compact-view {
-  margin-bottom: 12px;
-  padding: 8px 12px;
-  background: white;
-  border: 1px solid #e1e8ed;
-  border-radius: 6px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  margin-bottom: 8px;
+  padding: 4px 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
+/* First line: Title and URL */
+.hn-title-line {
+  margin-bottom: 2px;
+}
+
+.hn-title {
+  font-size: 14px;
+  font-weight: normal;
+  margin: 0;
+  line-height: 1.4;
+  color: #000;
+}
+
+.hn-title a {
+  color: #000;
+  text-decoration: none;
+}
+
+.hn-title a:visited {
+  color: #828282;
+}
+
+.hn-title a:hover {
+  text-decoration: underline;
+}
+
+.hn-url {
+  font-size: 10px;
+  color: #828282;
+  font-weight: normal;
+}
+
+/* Second line: Metadata */
+.hn-meta-line {
+  font-size: 9px;
+  color: #828282;
+  line-height: 1.4;
+}
+
+.hn-points {
+  color: #828282;
+}
+
+.hn-by {
+  color: #828282;
+}
+
+.hn-author {
+  color: #828282;
+}
+
+.hn-separator {
+  color: #828282;
+}
+
+.hn-time {
+  color: #828282;
+}
+
+.hn-action-link {
+  background: none;
+  border: none;
+  color: #828282;
+  font-size: 9px;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: none;
+  font-family: 'Lucida Grande', 'Lucida Sans Unicode', Tahoma, Verdana, Arial, sans-serif;
+}
+
+.hn-action-link:hover {
+  text-decoration: underline;
+}
+
+/* Legacy compact styles (kept for backward compatibility) */
 .compact-title {
   font-size: 13px;
   font-weight: 600;
@@ -1149,13 +1224,30 @@ body {
     padding: 6px 8px;
     margin-bottom: 8px;
   }
-  
+
   .compact-title {
     font-size: 12px;
   }
-  
+
   .compact-meta {
     font-size: 9px;
+  }
+
+  /* HN-style responsive adjustments */
+  .hn-title {
+    font-size: 13px;
+  }
+
+  .hn-url {
+    font-size: 9px;
+  }
+
+  .hn-meta-line {
+    font-size: 8px;
+  }
+
+  .hn-action-link {
+    font-size: 8px;
   }
   
   /* Comments Mobile */
