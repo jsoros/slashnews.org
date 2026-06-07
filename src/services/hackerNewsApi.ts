@@ -66,15 +66,41 @@ class HackerNewsApi {
 
   private async fetchHtmlContent(url: string): Promise<string | null> {
     const proxies = [
+      // Primary: allorigins.win (most reliable currently)
+      {
+        url: `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
+        extractContent: (response: { data: { contents: string } }) => response.data.contents,
+        name: 'allorigins.win'
+      },
+      // Fallback 1: api.cors.lol
       {
         url: `https://api.cors.lol/?url=${encodeURIComponent(url)}`,
         extractContent: (response: { data: string }) => response.data,
         name: 'api.cors.lol'
       },
+      // Fallback 2: corsproxy.io
       {
-        url: `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
-        extractContent: (response: { data: { contents: string } }) => response.data.contents,
-        name: 'allorigins.win'
+        url: `https://corsproxy.io/?${encodeURIComponent(url)}`,
+        extractContent: (response: { data: string }) => response.data,
+        name: 'corsproxy.io'
+      },
+      // Fallback 3: codetabs.com
+      {
+        url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+        extractContent: (response: { data: string }) => response.data,
+        name: 'codetabs.com'
+      },
+      // Fallback 4: thingproxy
+      {
+        url: `https://thingproxy.freeboard.io/fetch/${encodeURIComponent(url)}`,
+        extractContent: (response: { data: string }) => response.data,
+        name: 'thingproxy'
+      },
+      // Fallback 5: cors.sh
+      {
+        url: `https://cors.sh/${url}`,
+        extractContent: (response: { data: string }) => response.data,
+        name: 'cors.sh'
       }
     ];
 
