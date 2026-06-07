@@ -161,6 +161,18 @@ export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMod
     actionsRef.current.toggleStoryExpansion(storyId);
   }, []); // No dependencies - use ref
 
+  const retrySummary = useCallback((storyId: number) => {
+    console.debug(`[Summary] Retry requested for story ${storyId}`);
+    const story = visibleStories.find(s => s.id === storyId);
+    if (!story) {
+      console.warn(`[Summary] Story ${storyId} not found for retry`);
+      return;
+    }
+    // Clear failed state before retrying
+    actionsRef.current.clearSummaryFailed(storyId);
+    loadSummary(story);
+  }, [visibleStories, loadSummary]);
+
   // Pre-load comments for the first few visible stories in the background
   useEffect(() => {
     if (loading || !visibleStories.length) {
@@ -248,6 +260,7 @@ export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMod
               onToggleComments={toggleComments}
               onHideArticle={hideArticle}
               onShowArticle={showArticle}
+              onRetrySummary={retrySummary}
               isHidden={isArticleHidden(story.id)}
               showingHidden={showHiddenArticles}
             />
