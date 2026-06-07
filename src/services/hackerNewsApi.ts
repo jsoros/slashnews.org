@@ -66,15 +66,35 @@ class HackerNewsApi {
 
   private async fetchHtmlContent(url: string): Promise<string | null> {
     const proxies = [
+      // Primary: corsproxy.io - reliable CORS proxy service
       {
-        url: `https://api.cors.lol/?url=${encodeURIComponent(url)}`,
+        url: `https://corsproxy.io/?${encodeURIComponent(url)}`,
         extractContent: (response: { data: string }) => response.data,
-        name: 'api.cors.lol'
+        name: 'corsproxy.io'
       },
+      // Fallback 1: cors-anywhere alternative
+      {
+        url: `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`,
+        extractContent: (response: { data: string }) => response.data,
+        name: 'codetabs.com'
+      },
+      // Fallback 2: thingproxy
+      {
+        url: `https://thingproxy.freeboard.io/fetch/${encodeURIComponent(url)}`,
+        extractContent: (response: { data: string }) => response.data,
+        name: 'thingproxy'
+      },
+      // Fallback 3: allorigins.win (keeping as last resort)
       {
         url: `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`,
         extractContent: (response: { data: { contents: string } }) => response.data.contents,
         name: 'allorigins.win'
+      },
+      // Fallback 4: cors.sh
+      {
+        url: `https://cors.sh/${url}`,
+        extractContent: (response: { data: string }) => response.data,
+        name: 'cors.sh'
       }
     ];
 
