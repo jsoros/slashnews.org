@@ -16,13 +16,11 @@ export default defineConfig({
     hookTimeout: 15000,
     teardownTimeout: 15000,
     pool: 'forks', // Use forks instead of threads for better memory isolation
-    poolOptions: {
-      forks: {
-        minForks: 1,
-        maxForks: 1, // Always use single fork for memory efficiency
-        singleFork: true, // Force single fork mode to prevent memory accumulation
-        memoryLimit: '1024MB', // Set explicit memory limit per fork
-      }
+    forks: {
+      minForks: 1,
+      maxForks: 1, // Always use single fork for memory efficiency
+      singleFork: true, // Force single fork mode to prevent memory accumulation
+      memoryLimit: '1024MB', // Set explicit memory limit per fork
     },
     // Aggressive memory management
     maxConcurrency: 1, // Force sequential test execution
