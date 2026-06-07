@@ -17,7 +17,6 @@ interface StoryCardProps {
   onToggleComments: (storyId: number) => void;
   onHideArticle: (storyId: number) => void;
   onShowArticle: (storyId: number) => void;
-  onRetrySummary?: (storyId: number) => void;
   isHidden: boolean;
   showingHidden: boolean;
 }
@@ -55,7 +54,6 @@ export const StoryCard = React.memo<StoryCardProps>(({
   onToggleComments,
   onHideArticle,
   onShowArticle,
-  onRetrySummary,
   isHidden,
   showingHidden
 }) => {
@@ -272,15 +270,6 @@ export const StoryCard = React.memo<StoryCardProps>(({
                   ) : summaryFailed ? (
                     <div className="failed-summary">
                       <em>Summary unavailable</em>
-                      {onRetrySummary && (
-                        <button
-                          className="retry-summary-btn"
-                          onClick={() => onRetrySummary(story.id)}
-                          title="Retry loading summary"
-                        >
-                          ↻ Retry
-                        </button>
-                      )}
                     </div>
                   ) : null}
                 </div>
