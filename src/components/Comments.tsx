@@ -74,74 +74,37 @@ export const Comments = React.memo<CommentsProps>(({ storyId }) => {
   }, []);
 
   const loadRepliesForComment = useCallback(async (commentId: number) => {
-    console.log(`[loadRepliesForComment] Called for comment ${commentId}`);
-    console.log(`[loadRepliesForComment] loadedReplies:`, Array.from(loadedRepliesRef.current));
-    console.log(`[loadRepliesForComment] loadingReplies:`, Array.from(loadingRepliesRef.current));
-    console.log(`[loadRepliesForComment] comments count:`, commentsRef.current.length);
+    if (loadedRepliesRef.current.has(commentId)) return;
+    if (loadingRepliesRef.current.has(commentId)) return;
 
-    // Don't load if already loaded or loading - access refs directly for latest state
-    if (loadedRepliesRef.current.has(commentId)) {
-      console.log(`[loadRepliesForComment] Comment ${commentId} already loaded, skipping`);
-      return;
-    }
-
-    if (loadingRepliesRef.current.has(commentId)) {
-      console.log(`[loadRepliesForComment] Comment ${commentId} currently loading, skipping`);
-      return;
-    }
-
-    // Mark as loading
     setLoadingReplies(prev => new Set(prev).add(commentId));
 
     try {
-      // Find the comment in the current comments array - access ref directly
       const commentIndex = commentsRef.current.findIndex(c => c.id === commentId);
-      console.log(`[loadRepliesForComment] Found comment at index ${commentIndex}`);
-
-      if (commentIndex === -1) {
-        console.warn(`Comment ${commentId} not found in comments array`);
-        return;
-      }
+      if (commentIndex === -1) return;
 
       const comment = commentsRef.current[commentIndex];
-      console.log(`[loadRepliesForComment] Comment has ${comment.kids?.length || 0} kids`);
+      if (!comment.kids || comment.kids.length === 0) return;
 
-      if (!comment.kids || comment.kids.length === 0) {
-        console.warn(`Comment ${commentId} has no kids to load`);
-        return;
-      }
-
-      // Load the replies recursively (all levels)
       const replies = await buildCommentTree(comment.kids, comment.level + 1);
-      console.log(`[loadRepliesForComment] Loaded ${replies.length} replies for comment ${commentId}`);
 
-      // Insert replies after the parent comment
       setComments(prev => {
         const newComments = [...prev];
         const idx = newComments.findIndex(c => c.id === commentId);
-        if (idx === -1) {
-          console.warn(`[loadRepliesForComment] Comment ${commentId} not found when inserting replies`);
-          return prev;
-        }
+        if (idx === -1) return prev;
 
-        // Update the parent to mark replies as loaded
         newComments[idx] = {
           ...newComments[idx],
           hasUnloadedReplies: false
         };
-        // Insert all replies after the parent
         newComments.splice(idx + 1, 0, ...replies);
-        console.log(`[loadRepliesForComment] Inserted ${replies.length} replies after index ${idx}`);
         return newComments;
       });
 
-      // Mark as loaded
       setLoadedReplies(prev => new Set(prev).add(commentId));
-      console.log(`[loadRepliesForComment] Marked comment ${commentId} as loaded`);
     } catch (err) {
       console.error(`Failed to load replies for comment ${commentId}:`, err);
     } finally {
-      // Remove from loading
       setLoadingReplies(prev => {
         const next = new Set(prev);
         next.delete(commentId);
@@ -151,7 +114,6 @@ export const Comments = React.memo<CommentsProps>(({ storyId }) => {
   }, [buildCommentTree]);
 
   const loadComments = useCallback(async () => {
-    // Check cache first
     if (commentsCache.has(storyId)) {
       const cached = commentsCache.get(storyId)!;
       setComments(cached);
@@ -164,16 +126,22 @@ export const Comments = React.memo<CommentsProps>(({ storyId }) => {
       setError(null);
 
       const story = await hackerNewsApi.getItem(storyId);
-      if (!story || !story.kids) {
+      if (!story || !story.kids || story.kids.length === 0) {
         setComments([]);
         commentsCache.set(storyId, []);
+        setLoading(false);
         return;
       }
 
-      // Load all comments recursively
-      const commentsData = await buildCommentTree(story.kids, 0);
+      const commentsData = await buildCommentTree(story.kids, 0, 0);
+      if (commentsData.length === 0) {
+        setComments([]);
+        commentsCache.set(storyId, []);
+        setLoading(false);
+        return;
+      }
       setComments(commentsData);
-      commentsCache.set(storyId, commentsData); // Cache the results
+      commentsCache.set(storyId, commentsData);
     } catch (err) {
       setError('Failed to load comments. Please try again later.');
       console.error('Error loading comments:', err);

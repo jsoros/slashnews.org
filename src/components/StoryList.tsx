@@ -7,7 +7,6 @@ import { useHiddenArticles } from '../hooks/useHiddenArticles';
 import { StoryCard } from './StoryCard';
 import { StoryErrorBoundary } from './ErrorBoundary';
 import { hackerNewsApi } from '../services/hackerNewsApi';
-import type { CommentWithLevel } from './commentsUtils';
 
 interface StoryListProps {
   category?: string;
@@ -172,55 +171,6 @@ export const StoryList = React.memo<StoryListProps>(({ category = 'top', viewMod
     actionsRef.current.clearSummaryFailed(storyId);
     loadSummary(story);
   }, [visibleStories, loadSummary]);
-
-  // Pre-load comments for the first few visible stories in the background
-  useEffect(() => {
-    if (loading || !visibleStories.length) {
-      return;
-    }
-
-    // Only pre-load comments for the first 3 stories with comment counts
-    const storiesToPreload = visibleStories
-      .slice(0, 3)
-      .filter(story => story.descendants && story.descendants > 0);
-
-    if (storiesToPreload.length === 0) {
-      return;
-    }
-
-    // Delay pre-loading to avoid impacting initial page load
-    const timeoutId = setTimeout(async () => {
-      const { preloadComments } = await import('./commentsPreload.ts');
-
-      const buildCommentTree = async (
-        commentIds: number[],
-        level: number
-      ): Promise<CommentWithLevel[]> => {
-        const comments: CommentWithLevel[] = [];
-        for (const id of commentIds) {
-          const comment = await hackerNewsApi.getItem(id);
-          if (comment && !comment.deleted && !comment.dead && comment.text) {
-            const commentWithLevel = { ...comment, level };
-            comments.push(commentWithLevel);
-            if (comment.kids && comment.kids.length > 0) {
-              const childComments = await buildCommentTree(comment.kids, level + 1);
-              comments.push(...childComments);
-            }
-          }
-        }
-        return comments;
-      };
-
-      // Pre-load comments for each story sequentially to avoid overload
-      for (const story of storiesToPreload) {
-        await preloadComments(story.id, buildCommentTree, hackerNewsApi);
-        // Small delay between stories to be nice to the API
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-    }, 1000); // Wait 1 second after stories load before pre-loading
-
-    return () => clearTimeout(timeoutId);
-  }, [visibleStories, loading]);
 
   // Story ref callback for intersection observer
   const storyRef = useCallback((node: HTMLDivElement | null, storyId: number) => {

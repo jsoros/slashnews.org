@@ -33,7 +33,7 @@ vi.mock('../utils/circuitBreaker', () => ({
 // These tests are currently integration tests that hit real endpoints
 // This is acceptable for a news aggregation app since we're testing actual API responses
 // For true unit testing, we would need a more complex mocking setup with ES modules
-describe.skip('HackerNewsApi Integration Tests', () => {
+describe('HackerNewsApi Integration Tests', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockAxiosGet.mockReset();
