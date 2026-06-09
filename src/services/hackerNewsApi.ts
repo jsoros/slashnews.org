@@ -31,8 +31,7 @@ class HackerNewsApi {
   private readonly MAX_CACHE_SIZE = 1000;
   private readonly CACHE_EXPIRY_MS = 3600000; // 1 hour
   private summaryCache = new Map<string, CacheEntry>();
-  private readonly DEBUG_MODE = import.meta.env.MODE === 'development' ||
-                                import.meta.env.VITE_DEBUG_SUMMARIES === 'true';
+  private readonly DEBUG_MODE = import.meta.env.MODE === 'development';
 
   private isValidUrl(url: string): boolean {
     try {
@@ -139,8 +138,6 @@ class HackerNewsApi {
         const message = error instanceof Error ? error.message : String(error);
         if (this.DEBUG_MODE) {
           console.error(`[Summary Debug] ❌ Proxy ${proxies[i].name} (${i + 1}/${proxies.length}) failed for ${url}:`, message);
-        } else {
-          console.warn(`Proxy ${proxies[i].name} (${i + 1}/${proxies.length}) failed for ${url}:`, message);
         }
         continue;
       }
@@ -150,10 +147,10 @@ class HackerNewsApi {
   }
 
   async getArticleSummary(url: string): Promise<string | null> {
-    console.debug(`[Summary API] Starting getArticleSummary for: ${url}`);
+    if (this.DEBUG_MODE) console.debug(`[Summary API] Starting getArticleSummary for: ${url}`);
     
     if (!this.isValidUrl(url)) {
-      console.debug(`[Summary API] Invalid URL: ${url}`);
+      if (this.DEBUG_MODE) console.debug(`[Summary API] Invalid URL: ${url}`);
       return null;
     }
 
@@ -162,21 +159,21 @@ class HackerNewsApi {
     // Check cache first
     const cached = this.summaryCache.get(url);
     if (cached && Date.now() - cached.timestamp < this.CACHE_EXPIRY_MS) {
-      console.debug(`[Summary API] Cache hit for: ${url}`);
+      if (this.DEBUG_MODE) console.debug(`[Summary API] Cache hit for: ${url}`);
       return cached.data;
     }
 
     try {
-      console.debug(`[Summary API] Fetching HTML content for: ${url}`);
+      if (this.DEBUG_MODE) console.debug(`[Summary API] Fetching HTML content for: ${url}`);
       const html = await measureAsync('HN-API-fetchHtmlContent', () => 
         this.fetchHtmlContent(url)
       );
       if (!html) {
-        console.debug(`[Summary API] No HTML content returned for: ${url}`);
+        if (this.DEBUG_MODE) console.debug(`[Summary API] No HTML content returned for: ${url}`);
         return null;
       }
       
-      console.debug(`[Summary API] HTML fetched (${html.length} chars), extracting summary for: ${url}`);
+      if (this.DEBUG_MODE) console.debug(`[Summary API] HTML fetched (${html.length} chars), extracting summary for: ${url}`);
       
       // Extract meta description or Open Graph description
       const descMatch = html.match(/<meta[^>]*name="description"[^>]*content="([^"]*)"[^>]*>/i);
@@ -186,11 +183,11 @@ class HackerNewsApi {
       
       // If no meta description found, return null instead of fallback
       if (!summary) {
-        console.debug(`[Summary API] No meta description found for: ${url}`);
+        if (this.DEBUG_MODE) console.debug(`[Summary API] No meta description found for: ${url}`);
         return null;
       }
       
-      console.debug(`[Summary API] Found summary (${summary.length} chars) for: ${url}`);
+      if (this.DEBUG_MODE) console.debug(`[Summary API] Found summary (${summary.length} chars) for: ${url}`);
       
       // Clean up HTML entities and limit length
       let cleanSummary = summary
@@ -208,11 +205,11 @@ class HackerNewsApi {
         data: cleanSummary,
         timestamp: Date.now()
       });
-      console.debug(`[Summary API] Successfully cached summary for: ${url}`);
+      if (this.DEBUG_MODE) console.debug(`[Summary API] Successfully cached summary for: ${url}`);
       return cleanSummary;
       
     } catch (error) {
-      console.warn(`[Summary API] Failed to load summary for ${url}:`, error);
+      if (this.DEBUG_MODE) console.warn(`[Summary API] Failed to load summary for ${url}:`, error);
       return null;
     }
   }
