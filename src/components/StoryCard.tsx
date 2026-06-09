@@ -4,6 +4,7 @@ import DOMPurify from 'dompurify';
 import { type HackerNewsItem } from '../services/hackerNewsApi';
 import { Comments } from './Comments';
 import { CommentsErrorBoundary } from './ErrorBoundary';
+import { sanitizeUrl } from '../utils/security';
 
 type ViewMode = 'title' | 'compact' | 'full';
 
@@ -66,7 +67,7 @@ export const StoryCard = React.memo<StoryCardProps>(({
         <div className="title-view">
           <h3 className="title-only">
             {story.url ? (
-              <a href={story.url} target="_blank" rel="noopener noreferrer">
+              <a href={sanitizeUrl(story.url)} target="_blank" rel="noopener noreferrer">
                 {story.title}
               </a>
             ) : (
@@ -103,7 +104,7 @@ export const StoryCard = React.memo<StoryCardProps>(({
             <h3 className="hn-title">
               {story.url ? (
                 <>
-                  <a href={story.url} target="_blank" rel="noopener noreferrer">
+                  <a href={sanitizeUrl(story.url)} target="_blank" rel="noopener noreferrer">
                     {story.title}
                   </a>
                   {' '}
@@ -185,7 +186,7 @@ export const StoryCard = React.memo<StoryCardProps>(({
           <div className="full-header">
             <h2 className="story-title">
               {story.url ? (
-                <a href={story.url} target="_blank" rel="noopener noreferrer">
+                <a href={sanitizeUrl(story.url)} target="_blank" rel="noopener noreferrer">
                   {getStoryIcon(story)} {story.title}
                 </a>
               ) : (
@@ -233,7 +234,7 @@ export const StoryCard = React.memo<StoryCardProps>(({
                     <>
                       {' • '}
                       <a 
-                        href={story.url} 
+                        href={sanitizeUrl(story.url)}
                         target="_blank" 
                         rel="noopener noreferrer" 
                         className="story-source"
@@ -305,7 +306,7 @@ export const StoryCard = React.memo<StoryCardProps>(({
               <div className="story-actions">
                 {story.url && (
                   <a 
-                    href={story.url} 
+                    href={sanitizeUrl(story.url)}
                     target="_blank" 
                     rel="noopener noreferrer"
                     className="story-action-link"
