@@ -7,13 +7,6 @@ import { performanceMonitor } from './utils/performance'
 // Initialize performance monitoring
 performanceMonitor.mark('app-init-start');
 
-// Log memory usage periodically in development
-if (import.meta.env.DEV) {
-  setInterval(() => {
-    performanceMonitor.logMemoryUsage();
-  }, 30000); // Every 30 seconds
-}
-
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />
