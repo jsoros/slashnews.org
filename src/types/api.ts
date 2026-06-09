@@ -157,15 +157,17 @@ export function validateUrl(url: unknown): string {
     throw createValidationError('URL must be a non-empty string', 'url');
   }
   
+  let urlObj: URL;
   try {
-    const urlObj = new URL(url);
-    if (!['http:', 'https:'].includes(urlObj.protocol)) {
-      throw createValidationError('URL must use HTTP or HTTPS protocol', 'url');
-    }
-    return url;
+    urlObj = new URL(url);
   } catch {
     throw createValidationError('URL must be valid', 'url');
   }
+
+  if (!['http:', 'https:'].includes(urlObj.protocol)) {
+    throw createValidationError('URL must use HTTP or HTTPS protocol', 'url');
+  }
+  return url;
 }
 
 export function validateHackerNewsItem(item: unknown): HackerNewsItem {

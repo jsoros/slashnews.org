@@ -150,18 +150,6 @@ export class PerformanceMonitor {
     return new Map(this.measurements);
   }
 
-  // Log memory usage
-  logMemoryUsage(): void {
-    // if (typeof window !== 'undefined' && 'memory' in performance && (performance as Performance & { memory?: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory) {
-    //   const memory = (performance as Performance & { memory: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
-    //   console.log('[Performance Memory]', {
-    //     used: `${Math.round(memory.usedJSHeapSize / 1048576)}MB`,
-    //     total: `${Math.round(memory.totalJSHeapSize / 1048576)}MB`,
-    //     limit: `${Math.round(memory.jsHeapSizeLimit / 1048576)}MB`
-    //   });
-    // }
-  }
-
   // Clean up observers
   dispose(): void {
     this.observers.forEach(observer => observer.disconnect());
