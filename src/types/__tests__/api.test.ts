@@ -2,8 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   validateStoryId,
   validateUrl,
-  validateHackerNewsItem,
-  APIError,
+  validateHackerNewsItem
 } from "../api";
 
 describe("API Validation Functions", () => {
