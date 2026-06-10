@@ -3,6 +3,8 @@ name: deploy-branch-version
 on:
   push:
     branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
   workflow_dispatch:
 
 # Default permissions - read only
@@ -44,8 +46,14 @@ jobs:
       - name: Sanitize branch name to kebab-case
         id: sanitize
         run: |
+          # Determine branch name based on event type
+          if [ "${{ github.event_name }}" == "pull_request" ]; then
+            BRANCH_NAME="${{ github.head_ref }}"
+          else
+            BRANCH_NAME="${{ github.ref_name }}"
+          fi
+
           # Convert branch name to kebab-case
-          BRANCH_NAME="${{ github.ref_name }}"
           # Convert to lowercase
           BRANCH_NAME=$(echo "$BRANCH_NAME" | tr '[:upper:]' '[:lower:]')
           # Replace slashes, underscores, spaces, and other special chars with dashes
@@ -78,7 +86,7 @@ jobs:
       - run: bun run lint
       - name: Build with correct base path
         env:
-          VITE_BASE_PATH: ${{ github.ref == 'refs/heads/main' && './' || format('/branches/{0}/', steps.sanitize.outputs.branch_name) }}
+          VITE_BASE_PATH: ${{ (github.ref == 'refs/heads/main' && github.event_name != 'pull_request') && './' || format('/branches/{0}/', steps.sanitize.outputs.branch_name) }}
         run: bun run build
       - name: Run tests with memory monitoring
         run: |
@@ -87,93 +95,8 @@ jobs:
           bun run test:run
           echo "Available memory after tests:"
           free -h
-      - name: Setup Pages
-        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
-        uses: actions/configure-pages@v5
-      - name: Upload artifact
-        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: 'dist/'
-      - name: Deploy to GitHub Pages
-        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main'
-        id: deployment
-        uses: actions/deploy-pages@v4
-      - name: Deploy branch preview
-        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref != 'refs/heads/main'
-        run: |
-          # Configure git
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-
-          # Clone gh-pages branch
-          git clone --branch gh-pages "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages-deploy
-          cd gh-pages-deploy
-
-          # Create branches directory if it doesn't exist
-          mkdir -p branches
-
-          # Remove old branch deployment if it exists
-          rm -rf "branches/${{ steps.sanitize.outputs.branch_name }}"
-
-          # Copy new build
-          mkdir -p "branches/${{ steps.sanitize.outputs.branch_name }}"
-          cp -r ../dist/* "branches/${{ steps.sanitize.outputs.branch_name }}/"
-
-          # Create/update index for branches (optional - lists all branch deployments)
-          cat > branches/index.html << 'EOF'
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <title>Branch Previews</title>
-            <style>
-              body { font-family: system-ui; max-width: 800px; margin: 50px auto; padding: 20px; }
-              h1 { color: #333; }
-              ul { list-style: none; padding: 0; }
-              li { margin: 10px 0; }
-              a { color: #0066cc; text-decoration: none; }
-              a:hover { text-decoration: underline; }
-            </style>
-          </head>
-          <body>
-            <h1>Branch Preview Deployments</h1>
-            <ul id="branches"></ul>
-            <script>
-              // Sanitize branch name to kebab-case (matches the workflow logic)
-              function sanitizeBranchName(name) {
-                return name
-                  .toLowerCase()
-                  .replace(/[\/_ ]/g, '-')
-                  .replace(/[^a-z0-9-]/g, '')
-                  .replace(/-+/g, '-')
-                  .replace(/^-|-$/g, '');
-              }
-
-              fetch('https://api.github.com/repos/${{ github.repository }}/branches')
-                .then(r => r.json())
-                .then(branches => {
-                  const list = document.getElementById('branches');
-                  branches
-                    .filter(b => b.name !== 'main' && b.name !== 'gh-pages')
-                    .forEach(b => {
-                      const sanitized = sanitizeBranchName(b.name);
-                      const li = document.createElement('li');
-                      li.innerHTML = '<a href="' + sanitized + '/">' + b.name + '</a> → <code>' + sanitized + '</code>';
-                      list.appendChild(li);
-                    });
-                });
-            </script>
-          </body>
-          </html>
-          EOF
-
-          # Commit and push
-          git add .
-          git commit -m "Deploy branch preview: ${{ steps.sanitize.outputs.branch_name }} (from ${{ github.ref_name }})" || echo "No changes to commit"
-          git push
-
-      - name: Deploy branch preview
-        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref != 'refs/heads/main'
+      - name: Deploy branch preview to gh-pages branch
+        if: github.event_name == 'pull_request' || (github.event_name != 'pull_request' && github.ref != 'refs/heads/main')
         run: |
           # Configure git
           git config --global user.name "github-actions[bot]"
@@ -254,5 +177,88 @@ jobs:
 
           # Commit and push
           git add .
-          git commit -m "Deploy branch preview: ${{ steps.sanitize.outputs.branch_name }} (from ${{ github.ref_name }})" || echo "No changes to commit"
+          git commit -m "Deploy branch preview: ${{ steps.sanitize.outputs.branch_name }}" || echo "No changes to commit"
           git push
+
+      - name: Deploy main to gh-pages branch
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        run: |
+          # Configure git
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Clone gh-pages branch or create it if it doesn't exist
+          if git clone --branch gh-pages "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages-deploy 2>/dev/null; then
+            echo "Cloned existing gh-pages branch"
+            cd gh-pages-deploy
+          else
+            echo "gh-pages branch doesn't exist, creating new one"
+            git clone "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" gh-pages-deploy
+            cd gh-pages-deploy
+            git checkout --orphan gh-pages
+            git rm -rf .
+            echo "# GitHub Pages" > README.md
+            git add README.md
+            git commit -m "Initialize gh-pages branch"
+            git push -u origin gh-pages
+          fi
+
+          # Copy main build files, ensuring we don't delete the branches directory
+          # We use rsync or standard cp
+          cp -r ../dist/* .
+
+          # Commit and push
+          git add .
+          git commit -m "Deploy main branch update" || echo "No changes to commit"
+          git push
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'gh-pages-deploy/'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
+
+      - name: Verify Deployment
+        run: |
+          # Determine the URL to verify based on whether this is a PR or main
+          if [ "${{ github.event_name }}" == "pull_request" ] || [ "${{ github.ref }}" != "refs/heads/main" ]; then
+            DEPLOY_URL="${{ steps.deployment.outputs.page_url }}branches/${{ steps.sanitize.outputs.branch_name }}/"
+          else
+            DEPLOY_URL="${{ steps.deployment.outputs.page_url }}"
+          fi
+
+          echo "Verifying deployment at: $DEPLOY_URL"
+
+          # Use curl with retry logic to handle potential propagation delays
+          max_attempts=5
+          attempt=1
+          success=false
+
+          while [ $attempt -le $max_attempts ]; do
+            echo "Attempt $attempt of $max_attempts..."
+
+            # Fetch the URL, get HTTP status code, follow redirects
+            HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -L "$DEPLOY_URL")
+
+            if [ "$HTTP_STATUS" == "200" ]; then
+              echo "✅ Verification successful! Received HTTP 200."
+              success=true
+              break
+            else
+              echo "⏳ Received HTTP $HTTP_STATUS. Waiting before retry..."
+              sleep 10
+            fi
+
+            attempt=$((attempt + 1))
+          done
+
+          if [ "$success" = false ]; then
+            echo "❌ Verification failed after $max_attempts attempts."
+            exit 1
+          fi
