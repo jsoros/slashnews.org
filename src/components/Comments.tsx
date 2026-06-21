@@ -158,17 +158,25 @@ export const Comments = React.memo<CommentsProps>(({ storyId }) => {
     return formatDistanceToNow(new Date(timestamp * 1000), { addSuffix: true });
   };
 
-  // Configure DOMPurify to add target="_blank" and rel="noopener noreferrer" to all links
   const sanitizeConfig = {
-    ADD_ATTR: ['target'],
     ALLOWED_TAGS: ['a', 'p', 'i', 'code', 'pre', 'br'],
-    ALLOWED_ATTR: ['href', 'target', 'rel']
+    ALLOWED_ATTR: ['href']
   };
 
   const sanitizeComment = (text: string): string => {
+    // Safely add target="_blank" and rel="noopener noreferrer" using a DOMPurify hook
+    // We add and remove the hook so this behavior is scoped only to this function call
+    DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+      if (node.tagName && node.tagName.toLowerCase() === 'a') {
+        node.setAttribute('target', '_blank');
+        node.setAttribute('rel', 'noopener noreferrer');
+      }
+    });
+
     const clean = DOMPurify.sanitize(text, sanitizeConfig);
-    // Add target="_blank" and rel="noopener noreferrer" to all links
-    return clean.replace(/<a /g, '<a target="_blank" rel="noopener noreferrer" ');
+
+    DOMPurify.removeHook('afterSanitizeAttributes');
+    return clean;
   };
 
   if (loading) {
