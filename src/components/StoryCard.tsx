@@ -45,6 +45,19 @@ const formatTimeAgo = (timestamp: number): string => {
   return formatDistanceToNow(new Date(timestamp * 1000), { addSuffix: true });
 };
 
+// Configure DOMPurify to add target="_blank" and rel="noopener noreferrer" to all links
+const sanitizeConfig = {
+  ADD_ATTR: ['target'],
+  ALLOWED_TAGS: ['a', 'p', 'i', 'code', 'pre', 'br'],
+  ALLOWED_ATTR: ['href', 'target', 'rel']
+};
+
+const sanitizeStoryText = (text: string): string => {
+  const clean = DOMPurify.sanitize(text, sanitizeConfig);
+  // Add target="_blank" and rel="noopener noreferrer" to all links
+  return clean.replace(/<a /g, '<a target="_blank" rel="noopener noreferrer" ');
+};
+
 export const StoryCard = React.memo<StoryCardProps>(({
   story,
   viewMode,
@@ -256,7 +269,7 @@ export const StoryCard = React.memo<StoryCardProps>(({
               {story.text && (
                 <div 
                   className="story-summary" 
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(story.text) }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeStoryText(story.text) }}
                 />
               )}
 
