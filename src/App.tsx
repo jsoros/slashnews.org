@@ -54,6 +54,7 @@ function App() {
   return (
     <div>
       {/* Skip links for keyboard navigation */}
+      {/* Security: These are internal in-page anchor links for accessibility, not external links. They do not require target="_blank" or rel="noopener noreferrer". */}
       <a href="#main-content" className="skip-link" onClick={(e) => {
         e.preventDefault();
         skipToContent();
