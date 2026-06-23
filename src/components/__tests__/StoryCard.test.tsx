@@ -62,6 +62,16 @@ describe('StoryCard', () => {
     expect(screen.getByText('25 comments')).toBeInTheDocument();
   });
 
+  it('renders safe url when given a javascript protocol url', () => {
+    const maliciousStory = {
+      ...mockStory,
+      url: 'javascript:alert(1)',
+    };
+    render(<StoryCard {...defaultProps} story={maliciousStory} viewMode="title" />);
+
+    // In title view, the link wraps the title
+    const link = screen.getByRole('link', { name: 'Test Story Title' });
+    expect(link).toHaveAttribute('href', 'about:blank');
   describe('HTML Sanitization', () => {
     it('sanitizes dangerous HTML payloads', () => {
       const maliciousStory = {
