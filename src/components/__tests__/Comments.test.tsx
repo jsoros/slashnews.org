@@ -386,6 +386,40 @@ describe('Comments Component', () => {
         expect(screen.getByText('Safe content')).toBeInTheDocument();
       });
     });
+
+    it('prevents XSS via attribute injection (mXSS) in comment links', async () => {
+      const xssComment = {
+        ...mockComment1,
+        text: '<a href="http://example.com/ <a onmouseover=alert(1) ">Link</a>'
+      };
+
+      mockGetItem.mockImplementation((id: number) => {
+        if (id === 123) return Promise.resolve(mockStory);
+        if (id === 124) return Promise.resolve(xssComment);
+        if (id === 125) return Promise.resolve(mockComment2);
+        return Promise.resolve(null);
+      });
+
+      const { container } = render(<Comments storyId={123} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Link')).toBeInTheDocument();
+      });
+
+      const linkEl = screen.getByText('Link');
+      expect(linkEl.tagName).toBe('A');
+      expect(linkEl).toHaveAttribute('target', '_blank');
+      expect(linkEl).toHaveAttribute('rel', 'noopener noreferrer');
+
+      // The href should contain the sanitized string, without injecting a new element
+      expect(linkEl.getAttribute('href')).toBe('http://example.com/ <a onmouseover=alert(1)');
+
+      // Ensure no onmouseover attribute was injected
+      expect(linkEl).not.toHaveAttribute('onmouseover');
+
+      // Ensure no other unexpected attributes are present
+      expect(container.querySelector('[onmouseover]')).toBeNull();
+    });
   });
 
   describe('Performance and Memory', () => {

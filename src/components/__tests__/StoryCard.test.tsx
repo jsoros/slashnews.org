@@ -7,13 +7,7 @@ const mockOnToggleComments = vi.fn();
 const mockOnHideArticle = vi.fn();
 const mockOnShowArticle = vi.fn();
 
-// Mock DOMPurify
-vi.mock('dompurify', () => ({
-  default: {
-    sanitize: vi.fn((html: string) => html),
-  },
-}));
-
+// Use actual DOMPurify to test sanitization
 // Mock date-fns
 vi.mock('date-fns', () => ({
   formatDistanceToNow: vi.fn(() => '2 hours ago'),
@@ -78,5 +72,47 @@ describe('StoryCard', () => {
     // In title view, the link wraps the title
     const link = screen.getByRole('link', { name: 'Test Story Title' });
     expect(link).toHaveAttribute('href', 'about:blank');
+  describe('HTML Sanitization', () => {
+    it('sanitizes dangerous HTML payloads', () => {
+      const maliciousStory = {
+        ...mockStory,
+        text: 'Hello <script>alert("xss")</script><img src="x" onerror="alert(1)">World',
+      };
+
+      const { container } = render(
+        <StoryCard {...defaultProps} story={maliciousStory} viewMode="full" />
+      );
+
+      const summaryElement = container.querySelector('.story-summary');
+      expect(summaryElement).not.toBeNull();
+      // Should strip script and img tags but keep text
+      expect(summaryElement?.innerHTML).toBe('Hello World');
+    });
+
+    it('allows permitted tags and adds target/rel to links', () => {
+      const safeStory = {
+        ...mockStory,
+        text: 'Check this <a href="https://example.com">link</a> and <code>code</code><br><p>paragraph</p>',
+      };
+
+      const { container } = render(
+        <StoryCard {...defaultProps} story={safeStory} viewMode="full" />
+      );
+
+      const summaryElement = container.querySelector('.story-summary');
+      expect(summaryElement).not.toBeNull();
+
+      // Should preserve a, code, br, p tags
+      expect(summaryElement?.querySelector('code')).toBeInTheDocument();
+      expect(summaryElement?.querySelector('br')).toBeInTheDocument();
+      expect(summaryElement?.querySelector('p')).toBeInTheDocument();
+
+      // Link should have added attributes
+      const link = summaryElement?.querySelector('a');
+      expect(link).toBeInTheDocument();
+      expect(link?.getAttribute('href')).toBe('https://example.com');
+      expect(link?.getAttribute('target')).toBe('_blank');
+      expect(link?.getAttribute('rel')).toBe('noopener noreferrer');
+    });
   });
 });
