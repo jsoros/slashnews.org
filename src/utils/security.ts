@@ -15,8 +15,10 @@ export const sanitizeUrl = (url: string | undefined): string | undefined => {
     return url;
   } catch {
     // If parsing fails, fall back to safe check
-    const lowerUrl = url.trim().toLowerCase();
-    if (lowerUrl.startsWith('javascript:') || lowerUrl.startsWith('vbscript:') || lowerUrl.startsWith('data:')) {
+    // Remove all whitespace and control characters before checking
+    // eslint-disable-next-line no-control-regex
+    const normalizedUrl = url.replace(/[\s\x00-\x1F\x7F-\x9F]/g, '').toLowerCase();
+    if (normalizedUrl.startsWith('javascript:') || normalizedUrl.startsWith('vbscript:') || normalizedUrl.startsWith('data:')) {
       return 'about:blank';
     }
     return url;
