@@ -72,6 +72,8 @@ describe('StoryCard', () => {
     // In title view, the link wraps the title
     const link = screen.getByRole('link', { name: 'Test Story Title' });
     expect(link).toHaveAttribute('href', 'about:blank');
+  });
+
   describe('HTML Sanitization', () => {
     it('sanitizes dangerous HTML payloads', () => {
       const maliciousStory = {
