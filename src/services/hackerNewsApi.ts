@@ -1,4 +1,5 @@
 import axios from 'axios';
+import ipaddr from 'ipaddr.js';
 import { measureAsync } from '../utils/performance';
 import { circuitBreakerRegistry } from '../utils/circuitBreaker';
 
@@ -36,7 +37,35 @@ class HackerNewsApi {
   private isValidUrl(url: string): boolean {
     try {
       const parsed = new URL(url);
-      return ['http:', 'https:'].includes(parsed.protocol);
+      if (!['http:', 'https:'].includes(parsed.protocol)) {
+        return false;
+      }
+
+      const hostname = parsed.hostname.toLowerCase();
+
+      if (hostname === 'localhost' || hostname.endsWith('.localhost') || hostname.endsWith('.local')) {
+        return false;
+      }
+
+      // Handle IPv6 brackets
+      let ipStr = hostname;
+      if (ipStr.startsWith('[') && ipStr.endsWith(']')) {
+        ipStr = ipStr.slice(1, -1);
+      }
+
+      try {
+        const ip = ipaddr.process(ipStr);
+        const range = ip.range();
+        // Only allow unicast IP addresses, block private/loopback/etc
+        if (range !== 'unicast') {
+          return false;
+        }
+      } catch {
+        // If it throws, it's not a valid IP string (it's a regular domain)
+        // Note: URL parsing already resolves things like 0x7f000001 to 127.0.0.1
+      }
+
+      return true;
     } catch {
       return false;
     }
