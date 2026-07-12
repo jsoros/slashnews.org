@@ -40,8 +40,7 @@ vi.mock('../hooks/useStoryData', () => ({
 vi.mock('../hooks/useStoryListState', () => ({
   useStoryListState: () => ({
     state: { expandedStory: null, summaries: new Map(), loadingSummaries: new Map(), failedSummaries: new Map() },
-    actions: { clearAllState: vi.fn(), toggleStoryExpansion: vi.fn(), startSummaryLoading: vi.fn(), setSummarySuccess: vi.fn(), setSummaryFailed: vi.fn() },
-    computed: { getSummary: () => null, isLoadingSummary: () => false, isSummaryFailed: () => false }
+    actions: { clearAllState: vi.fn(), toggleStoryExpansion: vi.fn(), startSummaryLoading: vi.fn(), setSummarySuccess: vi.fn(), setSummaryFailed: vi.fn() }
   })
 }));
 
