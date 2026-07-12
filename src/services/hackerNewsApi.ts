@@ -319,21 +319,21 @@ class HackerNewsApi {
   }
 
   private async getCommentsRecursive(commentIds: number[]): Promise<HackerNewsItem[]> {
-    const comments: HackerNewsItem[] = [];
-    
-    for (const id of commentIds) {
+    const promises = commentIds.map(async (id) => {
       const comment = await this.getItem(id);
       if (comment && !comment.deleted && !comment.dead) {
-        comments.push(comment);
-        
+        const result = [comment];
         if (comment.kids && comment.kids.length > 0) {
           const childComments = await this.getCommentsRecursive(comment.kids);
-          comments.push(...childComments);
+          result.push(...childComments);
         }
+        return result;
       }
-    }
+      return [];
+    });
     
-    return comments;
+    const results = await Promise.all(promises);
+    return results.flat();
   }
 
   // Cleanup method for test environments
