@@ -63,10 +63,11 @@ const sanitizeStoryText = (text: string): string => {
     }
   });
 
-  const clean = DOMPurify.sanitize(text, sanitizeConfig);
-
-  DOMPurify.removeHook('afterSanitizeAttributes');
-  return clean;
+  try {
+    return DOMPurify.sanitize(text, sanitizeConfig);
+  } finally {
+    DOMPurify.removeHook('afterSanitizeAttributes');
+  }
 };
 
 export const StoryCard = React.memo<StoryCardProps>(({
