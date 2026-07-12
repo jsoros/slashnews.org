@@ -208,36 +208,41 @@ export const Comments = React.memo<CommentsProps>(({ storyId }) => {
   }
 
   // Filter comments to hide collapsed threads
-  const visibleComments = comments.filter((comment, index) => {
-    // Check if this comment is inside a collapsed thread by looking backwards
-    // through all parent levels
-    for (let i = index - 1; i >= 0; i--) {
-      const prevComment = comments[i];
+  // Optimized O(N) approach using a single forward pass
+  const visibleComments: (typeof comments[0] & { hasChildren: boolean })[] = [];
+  let currentCollapsedLevel: number | null = null;
 
-      // If we find a comment at a lower level (parent level)
-      if (prevComment.level < comment.level) {
-        // Check if this parent is collapsed
-        if (collapsedThreads.has(prevComment.id)) {
-          return false; // This comment is inside a collapsed thread
-        }
-        // If the parent level is not collapsed, continue checking grandparents
-        // Don't break - we need to check all ancestor levels
-      } else if (prevComment.level >= comment.level) {
-        // This is a sibling or cousin, keep going back
+  for (let i = 0; i < comments.length; i++) {
+    const comment = comments[i];
+
+    // Check if we're currently inside a collapsed thread
+    if (currentCollapsedLevel !== null) {
+      if (comment.level <= currentCollapsedLevel) {
+        // We've popped out of the collapsed thread's descendants
+        currentCollapsedLevel = null;
+      } else {
+        // This is a descendant of a collapsed thread, skip it
         continue;
       }
     }
-    return true;
-  });
+
+    // Determine if this comment has children in O(1) time
+    // A comment has children if the next comment in the array is at a deeper level
+    const hasChildren = i < comments.length - 1 && comments[i + 1].level > comment.level;
+
+    visibleComments.push({ ...comment, hasChildren });
+
+    // If this visible comment is collapsed, track its level
+    if (collapsedThreads.has(comment.id)) {
+      currentCollapsedLevel = comment.level;
+    }
+  }
 
   return (
     <div className="comments-section">
       {visibleComments.map((comment) => {
         const isCollapsed = collapsedThreads.has(comment.id);
-        const hasChildren = comments.some((c, idx) => {
-          const commentIdx = comments.indexOf(comment);
-          return idx > commentIdx && c.level > comment.level;
-        });
+        const hasChildren = comment.hasChildren;
         const isLoadingReplies = loadingReplies.has(comment.id);
 
         return (
