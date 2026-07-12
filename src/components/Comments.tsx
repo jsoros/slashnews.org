@@ -47,9 +47,7 @@ export const Comments = React.memo<CommentsProps>(({ storyId }) => {
     level: number,
     maxDepth: number = Infinity
   ): Promise<CommentWithLevel[]> => {
-    const comments: CommentWithLevel[] = [];
-
-    for (const id of commentIds) {
+    const fetchPromises = commentIds.map(async (id) => {
       const comment = await hackerNewsApi.getItem(id);
       if (comment && !comment.deleted && !comment.dead && comment.text) {
         const hasReplies = comment.kids && comment.kids.length > 0;
@@ -61,16 +59,21 @@ export const Comments = React.memo<CommentsProps>(({ storyId }) => {
           hasUnloadedReplies: hasReplies && !shouldLoadReplies,
           replyCount: hasReplies ? comment.kids!.length : undefined
         };
-        comments.push(commentWithLevel);
+
+        const result: CommentWithLevel[] = [commentWithLevel];
 
         if (shouldLoadReplies) {
           const childComments = await buildCommentTree(comment.kids!, level + 1, maxDepth);
-          comments.push(...childComments);
+          result.push(...childComments);
         }
-      }
-    }
 
-    return comments;
+        return result;
+      }
+      return [];
+    });
+
+    const results = await Promise.all(fetchPromises);
+    return results.flat();
   }, []);
 
   const loadRepliesForComment = useCallback(async (commentId: number) => {
