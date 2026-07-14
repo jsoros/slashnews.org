@@ -42,7 +42,7 @@ jobs:
             exit 1
           fi
           echo "Actor validation passed: $ACTOR"
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Sanitize branch name to kebab-case
         id: sanitize
         run: |
