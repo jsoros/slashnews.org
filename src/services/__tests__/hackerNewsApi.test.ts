@@ -70,7 +70,7 @@ describe('HackerNewsApi isValidUrl Security Tests', () => {
 
     blockedUrls.forEach(url => {
       // Access private method for testing purposes
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       expect((hackerNewsApi as any).isValidUrl(url)).toBe(false);
     });
   });
@@ -85,7 +85,7 @@ describe('HackerNewsApi isValidUrl Security Tests', () => {
 
     validUrls.forEach(url => {
       // Access private method for testing purposes
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       expect((hackerNewsApi as any).isValidUrl(url)).toBe(true);
     });
   });
@@ -99,7 +99,7 @@ describe('HackerNewsApi isValidUrl Security Tests', () => {
     ];
 
     invalidProtocols.forEach(url => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
       expect((hackerNewsApi as any).isValidUrl(url)).toBe(false);
     });
   });
