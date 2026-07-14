@@ -42,7 +42,7 @@ export default tseslint.config([
     files: ['**/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}', '**/*.spec.{ts,tsx}'],
     rules: {
       // Allow more flexibility in test files
-      '@typescript-eslint/no-explicit-any': 'warn',
+      '@typescript-eslint/no-explicit-any': 'off',
       // Test files can be more lenient with unused vars
       '@typescript-eslint/no-unused-vars': 'off',
     },
