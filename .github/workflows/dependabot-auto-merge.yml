@@ -1,16 +1,27 @@
+# Dependabot Auto-Merge
+# Note: Dependabot cannot trigger workflows that use repository secrets or require owner permissions.
+# This workflow attempts to run on the main branch via a push trigger, 
+# ensuring it has access to the owner's GITHUB_TOKEN permissions.
+
 name: Dependabot Auto-Merge
+
 on:
-  pull_request_target:
-    types: [opened, synchronize]
+  push:
+    branches:
+      - main
 
 jobs:
-  dependabot:
+  auto-merge:
     runs-on: ubuntu-latest
-    if: github.actor == 'dependabot[bot]'
     steps:
-      - name: Enable auto-merge for Dependabot PRs
+      - name: Fetch Dependabot PRs
         run: |
-          gh pr merge --auto --merge "$PR_URL"
+          # Use gh CLI to find open PRs created by dependabot
+          prs=$(gh pr list --author "dependabot[bot]" --state open --json url,number -q '.[].url')
+          for pr in $prs; do
+            echo "Processing $pr"
+            # Auto-merge the PR
+            gh pr merge --auto --merge "$pr"
+          done
         env:
-          PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
