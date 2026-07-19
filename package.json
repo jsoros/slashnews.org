@@ -20,7 +20,7 @@
     "@types/react-window": "^1.8.8",
     "axios": "^1.18.1",
     "date-fns": "^4.4.0",
-    "dompurify": "^3.4.11",
+    "dompurify": "^3.4.12",
     "ipaddr.js": "^2.4.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
