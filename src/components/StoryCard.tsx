@@ -1,10 +1,10 @@
 import React from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import DOMPurify from 'dompurify';
 import { type HackerNewsItem } from '../services/hackerNewsApi';
 import { Comments } from './Comments';
 import { CommentsErrorBoundary } from './ErrorBoundary';
 import { sanitizeUrl } from '../utils/security';
+import { sanitizeHtml } from '../utils/dompurify';
 
 type ViewMode = 'title' | 'compact' | 'full';
 
@@ -54,20 +54,7 @@ const sanitizeConfig = {
 };
 
 const sanitizeStoryText = (text: string): string => {
-  // Safely add target="_blank" and rel="noopener noreferrer" using a DOMPurify hook
-  // We add and remove the hook so this behavior is scoped only to this function call
-  DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-    if (node.tagName && node.tagName.toLowerCase() === 'a') {
-      node.setAttribute('target', '_blank');
-      node.setAttribute('rel', 'noopener noreferrer');
-    }
-  });
-
-  try {
-    return DOMPurify.sanitize(text, sanitizeConfig);
-  } finally {
-    DOMPurify.removeHook('afterSanitizeAttributes');
-  }
+  return sanitizeHtml(text, sanitizeConfig);
 };
 
 export const StoryCard = React.memo<StoryCardProps>(({
