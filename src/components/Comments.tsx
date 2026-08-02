@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { formatDistanceToNow } from 'date-fns';
-import DOMPurify from 'dompurify';
 import { hackerNewsApi } from '../services/hackerNewsApi';
 import type { CommentWithLevel } from './commentsUtils';
 import { commentsCache } from './commentsUtils';
+import { sanitizeHtml } from '../utils/dompurify';
 
 interface CommentsProps {
   storyId: number;
@@ -167,20 +167,7 @@ export const Comments = React.memo<CommentsProps>(({ storyId }) => {
   };
 
   const sanitizeComment = (text: string): string => {
-    // Safely add target="_blank" and rel="noopener noreferrer" using a DOMPurify hook
-    // We add and remove the hook so this behavior is scoped only to this function call
-    DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-      if (node.tagName && node.tagName.toLowerCase() === 'a') {
-        node.setAttribute('target', '_blank');
-        node.setAttribute('rel', 'noopener noreferrer');
-      }
-    });
-
-    try {
-      return DOMPurify.sanitize(text, sanitizeConfig);
-    } finally {
-      DOMPurify.removeHook('afterSanitizeAttributes');
-    }
+    return sanitizeHtml(text, sanitizeConfig);
   };
 
   if (loading) {
