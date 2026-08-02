@@ -48,9 +48,8 @@ const formatTimeAgo = (timestamp: number): string => {
 
 // Configure DOMPurify to allow needed tags and attributes
 const sanitizeConfig = {
-  ADD_ATTR: ['target'],
   ALLOWED_TAGS: ['a', 'p', 'i', 'code', 'pre', 'br'],
-  ALLOWED_ATTR: ['href', 'target', 'rel']
+  ALLOWED_ATTR: ['href']
 };
 
 const sanitizeStoryText = (text: string): string => {
