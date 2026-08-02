@@ -170,7 +170,7 @@ export const Comments = React.memo<CommentsProps>(({ storyId }) => {
     // Safely add target="_blank" and rel="noopener noreferrer" using a DOMPurify hook
     // We add and remove the hook so this behavior is scoped only to this function call
     DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-      if (node.tagName && node.tagName.toLowerCase() === 'a') {
+      if (node.nodeName && node.nodeName.toLowerCase() === 'a') {
         node.setAttribute('target', '_blank');
         node.setAttribute('rel', 'noopener noreferrer');
       }

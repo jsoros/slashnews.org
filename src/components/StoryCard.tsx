@@ -48,16 +48,15 @@ const formatTimeAgo = (timestamp: number): string => {
 
 // Configure DOMPurify to allow needed tags and attributes
 const sanitizeConfig = {
-  ADD_ATTR: ['target'],
   ALLOWED_TAGS: ['a', 'p', 'i', 'code', 'pre', 'br'],
-  ALLOWED_ATTR: ['href', 'target', 'rel']
+  ALLOWED_ATTR: ['href']
 };
 
 const sanitizeStoryText = (text: string): string => {
   // Safely add target="_blank" and rel="noopener noreferrer" using a DOMPurify hook
   // We add and remove the hook so this behavior is scoped only to this function call
   DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-    if (node.tagName && node.tagName.toLowerCase() === 'a') {
+    if (node.nodeName && node.nodeName.toLowerCase() === 'a') {
       node.setAttribute('target', '_blank');
       node.setAttribute('rel', 'noopener noreferrer');
     }
