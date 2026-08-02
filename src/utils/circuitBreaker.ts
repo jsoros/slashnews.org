@@ -49,7 +49,6 @@ export class CircuitBreaker {
         throw new Error(`Circuit breaker is OPEN for ${this.name}. Next retry in ${Math.ceil((this.nextRetryTime - Date.now()) / 1000)}s`);
       } else {
         this.state = CircuitState.HALF_OPEN;
-        console.log(`[Circuit Breaker] ${this.name} transitioning to HALF_OPEN`);
       }
     }
 
@@ -69,7 +68,6 @@ export class CircuitBreaker {
     
     if (this.state === CircuitState.HALF_OPEN) {
       this.state = CircuitState.CLOSED;
-      console.log(`[Circuit Breaker] ${this.name} recovered - transitioning to CLOSED`);
     }
   }
 
@@ -108,7 +106,6 @@ export class CircuitBreaker {
     this.lastFailureTime = undefined;
     this.nextRetryTime = 0;
     this.state = CircuitState.CLOSED;
-    console.log(`[Circuit Breaker] ${this.name} manually reset`);
   }
 }
 
