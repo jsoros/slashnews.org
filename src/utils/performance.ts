@@ -77,10 +77,6 @@ export class PerformanceMonitor {
   }
 
   private logMetric(name: string, value: number, type: string): void {
-    // if (import.meta.env.DEV) {
-    //   console.log(`[Performance ${type}] ${name}: ${Math.round(value)}ms`);
-    // }
-    
     // Store measurement
     this.measurements.set(`${type}:${name}`, value);
   }
