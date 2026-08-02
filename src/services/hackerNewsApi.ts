@@ -32,6 +32,8 @@ class HackerNewsApi {
   private readonly MAX_CACHE_SIZE = 1000;
   private readonly CACHE_EXPIRY_MS = 3600000; // 1 hour
   private summaryCache = new Map<string, CacheEntry>();
+  private itemCache = new Map<number, { data: HackerNewsItem, timestamp: number }>();
+  private itemPromises = new Map<number, Promise<HackerNewsItem | null>>();
   private readonly DEBUG_MODE = import.meta.env.MODE === 'development';
 
   private isValidUrl(url: string): boolean {
@@ -82,7 +84,23 @@ class HackerNewsApi {
       }
     }
 
+    // Remove expired item entries
+    for (const [key, entry] of this.itemCache.entries()) {
+      if (now - entry.timestamp > this.CACHE_EXPIRY_MS) {
+        this.itemCache.delete(key);
+      }
+    }
+
     // Remove oldest entries if cache is too large
+    if (this.itemCache.size > this.MAX_CACHE_SIZE) {
+      const entries = Array.from(this.itemCache.entries());
+      entries
+        .sort(([, a], [, b]) => a.timestamp - b.timestamp)
+        .slice(0, Math.floor(this.MAX_CACHE_SIZE * 0.2))
+        .forEach(([key]) => this.itemCache.delete(key));
+    }
+
+    // Remove oldest entries if summary cache is too large
     if (this.summaryCache.size > this.MAX_CACHE_SIZE) {
       const entries = Array.from(this.summaryCache.entries());
       entries
@@ -282,9 +300,23 @@ class HackerNewsApi {
   }
 
   async getItem(id: number): Promise<HackerNewsItem | null> {
-    return measureAsync(`HN-API-getItem-${id}`, async () => {
+    this.maintainCache();
+
+    // 1. Check completed cache
+    const cached = this.itemCache.get(id);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_EXPIRY_MS) {
+      return cached.data;
+    }
+
+    // 2. Check in-flight promises (deduplication)
+    if (this.itemPromises.has(id)) {
+      return this.itemPromises.get(id)!;
+    }
+
+    // 3. Make the API call and cache the promise
+    const promise = measureAsync(`HN-API-getItem-${id}`, async () => {
       try {
-        return await circuitBreakerRegistry.executeWithCircuitBreaker(
+        const item = await circuitBreakerRegistry.executeWithCircuitBreaker(
           'hacker-news-items',
           async () => {
             const response = await axios.get(`${BASE_URL}/item/${id}.json`, { timeout: 8000 });
@@ -292,11 +324,22 @@ class HackerNewsApi {
           },
           { maxRetries: 2, baseDelayMs: 500 }
         );
+
+        if (item !== null) {
+          this.itemCache.set(id, { data: item, timestamp: Date.now() });
+        }
+        return item;
       } catch (error) {
         console.error(`Failed to fetch item ${id}:`, error);
         return null;
+      } finally {
+        // Clean up the promise map once it resolves/rejects
+        this.itemPromises.delete(id);
       }
     });
+
+    this.itemPromises.set(id, promise);
+    return promise;
   }
 
   async getItems(ids: number[]): Promise<HackerNewsItem[]> {
@@ -339,6 +382,8 @@ class HackerNewsApi {
   // Cleanup method for test environments
   clearCache(): void {
     this.summaryCache.clear();
+    this.itemCache.clear();
+    this.itemPromises.clear();
   }
 }
 
