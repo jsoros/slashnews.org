@@ -38,6 +38,8 @@ describe('sanitizeUrl', () => {
     expect(sanitizeUrl('j\navascript:alert(1)')).toBe('about:blank');
     expect(sanitizeUrl('j\tavascript:alert(1)')).toBe('about:blank');
     expect(sanitizeUrl('j\ravascript:alert(1)')).toBe('about:blank');
+    expect(sanitizeUrl('jav\x01ascript:alert(1)')).toBe('about:blank');
+    expect(sanitizeUrl('j a v a s c r i p t:alert(1)')).toBe('about:blank');
   });
 
   it('handles undefined or empty URLs', () => {
